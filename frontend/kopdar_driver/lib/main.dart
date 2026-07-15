@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'app.dart';
 import 'features/auth/presentation/providers/auth_provider.dart';
+import 'features/auth/presentation/providers/registration_draft_provider.dart';
 import 'features/dashboard/presentation/providers/dashboard_provider.dart';
 import 'features/income/presentation/providers/transaction_provider.dart';
 import 'features/finance/presentation/providers/finance_provider.dart';
@@ -22,6 +23,7 @@ void main() async {
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => RegistrationDraftProvider()),
         ChangeNotifierProvider(create: (_) => DashboardProvider()),
         ChangeNotifierProvider(create: (_) => TransactionProvider()),
         ChangeNotifierProvider(create: (_) => FinanceProvider()),
