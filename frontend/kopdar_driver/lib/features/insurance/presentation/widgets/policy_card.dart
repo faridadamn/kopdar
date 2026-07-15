@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import '../../../../config/theme.dart';
-import '../../../core/utils/formatters.dart';
-import '../../data/models/insurance_model.dart';
+
+import 'package:kopdar_driver/config/theme.dart';
+import 'package:kopdar_driver/core/utils/formatters.dart';
+import 'package:kopdar_driver/features/insurance/data/models/insurance_model.dart';
 
 /// Policy card showing active/expiring policy details.
 class PolicyCard extends StatelessWidget {
@@ -23,11 +24,14 @@ class PolicyCard extends StatelessWidget {
         color: AppColors.white,
         borderRadius: BorderRadius.circular(16),
         border: policy.isExpiringSoon
-            ? Border.all(color: AppColors.warning.withOpacity(0.4), width: 1.5)
+            ? Border.all(
+                color: AppColors.warning.withValues(alpha: 0.4),
+                width: 1.5,
+              )
             : null,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -36,12 +40,13 @@ class PolicyCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header: product name + status badge
           Row(
             children: [
               Expanded(
                 child: Text(
                   policy.productName,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w700,
@@ -49,56 +54,48 @@ class PolicyCard extends StatelessWidget {
                   ),
                 ),
               ),
+              const SizedBox(width: 8),
               _StatusBadge(status: policy.status),
             ],
           ),
           const SizedBox(height: 4),
-
-          // Policy number
           Text(
             'No. ${policy.policyNumber}',
-            style: TextStyle(
-              fontSize: 12,
-              color: AppColors.gray500,
-            ),
+            style: const TextStyle(fontSize: 12, color: AppColors.gray500),
           ),
           const SizedBox(height: 12),
-
-          // Date range
           Row(
             children: [
-              Icon(Icons.calendar_today_rounded,
-                  size: 14, color: AppColors.gray500),
+              const Icon(
+                Icons.calendar_today_rounded,
+                size: 14,
+                color: AppColors.gray500,
+              ),
               const SizedBox(width: 6),
-              Text(
-                '${Formatters.date(policy.startDate)} — ${Formatters.date(policy.endDate)}',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: AppColors.gray600,
+              Expanded(
+                child: Text(
+                  '${Formatters.date(policy.startDate)} — ${Formatters.date(policy.endDate)}',
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 12, color: AppColors.gray600),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 8),
-
-          // Premium + expiry
           Row(
             children: [
-              // Premium
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
+                    const Text(
                       'Premi',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: AppColors.gray500,
-                      ),
+                      style: TextStyle(fontSize: 11, color: AppColors.gray500),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       '${Formatters.currency(policy.premium.toInt())}/bulan',
+                      overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
@@ -108,18 +105,13 @@ class PolicyCard extends StatelessWidget {
                   ],
                 ),
               ),
-
-              // Days until expiry
               if (policy.isActive)
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Text(
+                    const Text(
                       'Sisa',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: AppColors.gray500,
-                      ),
+                      style: TextStyle(fontSize: 11, color: AppColors.gray500),
                     ),
                     const SizedBox(height: 2),
                     Text(
@@ -136,8 +128,6 @@ class PolicyCard extends StatelessWidget {
                 ),
             ],
           ),
-
-          // Renew button for expiring policies
           if (policy.isExpiringSoon && onRenew != null) ...[
             const SizedBox(height: 12),
             SizedBox(
@@ -174,36 +164,21 @@ class _StatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Color color;
-    Color bgColor;
-    String label;
-
-    switch (status) {
-      case 'active':
-        color = AppColors.success;
-        bgColor = AppColors.success.withOpacity(0.1);
-        label = 'Aktif';
-        break;
-      case 'expired':
-        color = AppColors.danger;
-        bgColor = AppColors.dangerLight;
-        label = 'Kedaluwarsa';
-        break;
-      case 'cancelled':
-        color = AppColors.gray500;
-        bgColor = AppColors.gray200;
-        label = 'Dibatalkan';
-        break;
-      default:
-        color = AppColors.gray500;
-        bgColor = AppColors.gray200;
-        label = status;
-    }
+    final (color, backgroundColor, label) = switch (status) {
+      'active' => (
+          AppColors.success,
+          AppColors.success.withValues(alpha: 0.1),
+          'Aktif',
+        ),
+      'expired' => (AppColors.danger, AppColors.dangerLight, 'Kedaluwarsa'),
+      'cancelled' => (AppColors.gray500, AppColors.gray200, 'Dibatalkan'),
+      _ => (AppColors.gray500, AppColors.gray200, status),
+    };
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: bgColor,
+        color: backgroundColor,
         borderRadius: BorderRadius.circular(8),
       ),
       child: Text(
