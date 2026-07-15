@@ -4,24 +4,15 @@ import 'package:google_fonts/google_fonts.dart';
 class AppColors {
   AppColors._();
 
-  // Primary
   static const Color primary = Color(0xFF1B6B3A);
   static const Color primaryLight = Color(0xFF27A85A);
   static const Color primaryBg = Color(0xFFE8F5E9);
-
-  // Accent
   static const Color accent = Color(0xFFFF6B35);
   static const Color accentLight = Color(0xFFFFF3E0);
-
-  // Danger
   static const Color danger = Color(0xFFE53935);
   static const Color dangerLight = Color(0xFFFFEBEE);
-
-  // Blue
   static const Color blue = Color(0xFF1976D2);
   static const Color blueLight = Color(0xFFE3F2FD);
-
-  // Gray scale
   static const Color gray50 = Color(0xFFFAFAFA);
   static const Color gray100 = Color(0xFFF5F5F5);
   static const Color gray200 = Color(0xFFEEEEEE);
@@ -32,8 +23,6 @@ class AppColors {
   static const Color gray700 = Color(0xFF616161);
   static const Color gray800 = Color(0xFF424242);
   static const Color gray900 = Color(0xFF212121);
-
-  // Semantic
   static const Color white = Color(0xFFFFFFFF);
   static const Color black = Color(0xFF000000);
   static const Color success = Color(0xFF4CAF50);
@@ -146,11 +135,11 @@ class AppTheme {
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: AppColors.gray300),
+          borderSide: const BorderSide(color: AppColors.gray300),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: AppColors.gray300),
+          borderSide: const BorderSide(color: AppColors.gray300),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -169,7 +158,7 @@ class AppTheme {
           color: AppColors.gray400,
         ),
       ),
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
