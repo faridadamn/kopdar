@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../../core/storage/local_storage.dart';
-import '../../../config/constants.dart';
-import '../../../core/errors/exceptions.dart';
+import '../../../../core/storage/local_storage.dart';
+import '../../../../config/constants.dart';
+import '../../../../core/errors/exceptions.dart';
 import '../../data/datasources/auth_remote_ds.dart';
 
 enum AuthStatus {
@@ -51,7 +51,6 @@ class AuthProvider extends ChangeNotifier {
       } else if (LocalStorage.getBool(AppConstants.keyIsVerified) == true) {
         _status = AuthStatus.authenticated;
       } else {
-        // Token exists, but onboarding/verification has not completed.
         _status = AuthStatus.unauthenticated;
       }
     } else {
@@ -88,7 +87,7 @@ class AuthProvider extends ChangeNotifier {
       }
 
       _userPhone = phone;
-      _userId = phone; // Replaced after profile data is retrieved.
+      _userId = phone;
       await LocalStorage.saveAuthData(
         token: accessToken,
         refreshToken: refreshToken,
@@ -97,7 +96,6 @@ class AuthProvider extends ChangeNotifier {
         userPhone: phone,
       );
 
-      // A valid token is available, but the registration flow must finish first.
       _status = AuthStatus.unauthenticated;
       notifyListeners();
       return true;
@@ -108,8 +106,6 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  /// Legacy registration facade retained until the registration pages are
-  /// migrated to submit the backend's required multipart payload.
   Future<bool> submitRegistration({
     required String name,
     required String nik,
@@ -163,7 +159,6 @@ class AuthProvider extends ChangeNotifier {
       }
       notifyListeners();
     } on NotFoundException {
-      // User has a valid auth token but has not submitted driver registration.
       _status = AuthStatus.unauthenticated;
       notifyListeners();
     } on UnauthorizedException {
