@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../config/theme.dart';
+import 'package:kopdar_driver/config/theme.dart';
 
 /// Global error handler widget that wraps the app.
-/// Catches and displays errors gracefully.
 class GlobalErrorHandler extends StatefulWidget {
   final Widget child;
 
@@ -17,7 +16,6 @@ class _GlobalErrorHandlerState extends State<GlobalErrorHandler> {
   @override
   void initState() {
     super.initState();
-    // Catch Flutter framework errors
     FlutterError.onError = (details) {
       FlutterError.presentError(details);
       _logError(details.exception, details.stack);
@@ -25,17 +23,14 @@ class _GlobalErrorHandlerState extends State<GlobalErrorHandler> {
   }
 
   void _logError(Object error, StackTrace? stack) {
-    debugPrint('🔴 GLOBAL ERROR: $error');
+    debugPrint('GLOBAL ERROR: $error');
     if (stack != null) debugPrint('STACK: $stack');
   }
 
   @override
-  Widget build(BuildContext context) {
-    return widget.child;
-  }
+  Widget build(BuildContext context) => widget.child;
 }
 
-/// Error display page for unhandled route errors.
 class ErrorPage extends StatelessWidget {
   final String? errorMessage;
 
@@ -61,7 +56,7 @@ class ErrorPage extends StatelessWidget {
               const SizedBox(height: 12),
               Text(
                 errorMessage ?? 'Halaman yang kamu cari tidak ditemukan.',
-                style: TextStyle(
+                style: const TextStyle(
                   color: AppColors.gray500,
                   fontSize: 14,
                 ),
@@ -76,7 +71,6 @@ class ErrorPage extends StatelessWidget {
               const SizedBox(height: 12),
               TextButton(
                 onPressed: () {
-                  // Could send error report
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text('Laporan kesalahan terkirim. Terima kasih!'),
@@ -84,7 +78,7 @@ class ErrorPage extends StatelessWidget {
                     ),
                   );
                 },
-                child: Text(
+                child: const Text(
                   'Laporkan Masalah',
                   style: TextStyle(color: AppColors.gray500),
                 ),
@@ -97,15 +91,14 @@ class ErrorPage extends StatelessWidget {
   }
 }
 
-/// Extension for safe navigation with error handling.
 extension SafeNavigation on BuildContext {
   void safePush(String path) {
     try {
       push(path);
-    } catch (e) {
+    } catch (error) {
       ScaffoldMessenger.of(this).showSnackBar(
         SnackBar(
-          content: Text('Gagal membuka halaman: $e'),
+          content: Text('Gagal membuka halaman: $error'),
           backgroundColor: AppColors.danger,
         ),
       );
@@ -115,7 +108,7 @@ extension SafeNavigation on BuildContext {
   void safeGo(String path) {
     try {
       go(path);
-    } catch (e) {
+    } catch (_) {
       go('/home');
     }
   }
