@@ -215,8 +215,28 @@ void main() {
         }),
       ];
       final vehiclesAfter = [
-        vehiclesBefore[0].copyWith(isPrimary: false),
-        vehiclesBefore[1].copyWith(isPrimary: true),
+        VehicleModel.fromJson({
+          'id': 'v-1',
+          'type': 'Motor',
+          'brand': 'Honda',
+          'model': 'Vario',
+          'year': 2023,
+          'plate_number': 'B 1234',
+          'color': 'Hitam',
+          'is_primary': false,
+          'created_at': '2026-01-01T00:00:00.000',
+        }),
+        VehicleModel.fromJson({
+          'id': 'v-2',
+          'type': 'Mobil',
+          'brand': 'Toyota',
+          'model': 'Avanza',
+          'year': 2022,
+          'plate_number': 'D 5678',
+          'color': 'Putih',
+          'is_primary': true,
+          'created_at': '2026-01-01T00:00:00.000',
+        }),
       ];
       var fetchCount = 0;
       when(() => mockDataSource.getVehicles()).thenAnswer((_) async {
