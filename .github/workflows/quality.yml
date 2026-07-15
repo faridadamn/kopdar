@@ -31,8 +31,8 @@ jobs:
           go-version-file: backend/go.mod
           cache-dependency-path: backend/go.sum
 
-      - name: Download dependencies
-        run: go mod download
+      - name: Resolve dependencies
+        run: go mod tidy
 
       - name: Vet
         id: vet
@@ -54,6 +54,7 @@ jobs:
         with:
           name: backend-diagnostics
           path: |
+            backend/go.sum
             backend/vet-report.txt
             backend/test-report.txt
 
@@ -102,6 +103,7 @@ jobs:
         with:
           name: flutter-diagnostics
           path: |
+            frontend/kopdar_driver/pubspec.lock
             frontend/kopdar_driver/analyze-report.txt
             frontend/kopdar_driver/test-report.txt
 
