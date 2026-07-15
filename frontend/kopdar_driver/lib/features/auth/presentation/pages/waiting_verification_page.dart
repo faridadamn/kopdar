@@ -1,19 +1,22 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import '../../../config/theme.dart';
-import '../../../core/storage/local_storage.dart';
+import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+
+import 'package:kopdar_driver/config/theme.dart';
+import 'package:kopdar_driver/features/auth/presentation/providers/auth_provider.dart';
 
 class WaitingVerificationPage extends StatefulWidget {
   const WaitingVerificationPage({super.key});
 
   @override
-  State<WaitingVerificationPage> createState() => _WaitingVerificationPageState();
+  State<WaitingVerificationPage> createState() =>
+      _WaitingVerificationPageState();
 }
 
 class _WaitingVerificationPageState extends State<WaitingVerificationPage>
     with SingleTickerProviderStateMixin {
-  late AnimationController _pulseController;
+  late final AnimationController _pulseController;
   bool _isChecking = false;
 
   @override
@@ -32,38 +35,52 @@ class _WaitingVerificationPageState extends State<WaitingVerificationPage>
   }
 
   Future<void> _checkStatus() async {
+    if (_isChecking) return;
     setState(() => _isChecking = true);
 
-    await Future.delayed(const Duration(seconds: 2));
+    final auth = context.read<AuthProvider>();
+    await auth.checkVerificationStatus();
 
     if (!mounted) return;
     setState(() => _isChecking = false);
 
-    // In real app, check API for status
-    // For demo, show snackbar
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Akun masih dalam proses verifikasi. Sabar ya! 😊'),
-        backgroundColor: AppColors.primary,
-      ),
-    );
+    switch (auth.status) {
+      case AuthStatus.authenticated:
+        context.go('/home');
+        return;
+      case AuthStatus.error:
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(auth.errorMessage ?? 'Verifikasi belum berhasil.'),
+            backgroundColor: AppColors.danger,
+          ),
+        );
+        return;
+      default:
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Akun masih dalam proses verifikasi.'),
+            backgroundColor: AppColors.primary,
+          ),
+        );
+    }
   }
 
   Future<void> _logout() async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Keluar?'),
         content: const Text(
-          'Kamu akan keluar dari akun. Pendaftaran tetap tersimpan dan bisa dilanjutkan nanti.',
+          'Pendaftaran tetap tersimpan. Kamu dapat masuk kembali untuk mengecek statusnya.',
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
+            onPressed: () => Navigator.pop(dialogContext, false),
             child: const Text('Batal'),
           ),
           TextButton(
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: () => Navigator.pop(dialogContext, true),
             style: TextButton.styleFrom(foregroundColor: AppColors.danger),
             child: const Text('Keluar'),
           ),
@@ -71,12 +88,9 @@ class _WaitingVerificationPageState extends State<WaitingVerificationPage>
       ),
     );
 
-    if (confirmed == true) {
-      await LocalStorage.clear();
-      if (mounted) {
-        context.go('/login');
-      }
-    }
+    if (confirmed != true || !mounted) return;
+    await context.read<AuthProvider>().logout();
+    if (mounted) context.go('/login');
   }
 
   @override
@@ -89,8 +103,6 @@ class _WaitingVerificationPageState extends State<WaitingVerificationPage>
           child: Column(
             children: [
               const Spacer(),
-
-              // Success icon with pulse
               AnimatedBuilder(
                 animation: _pulseController,
                 builder: (context, child) {
@@ -98,22 +110,20 @@ class _WaitingVerificationPageState extends State<WaitingVerificationPage>
                     width: 120 + (_pulseController.value * 10),
                     height: 120 + (_pulseController.value * 10),
                     decoration: BoxDecoration(
-                      color: AppColors.primaryBg.withOpacity(
-                        1 - (_pulseController.value * 0.3),
+                      color: AppColors.primaryBg.withValues(
+                        alpha: 1 - (_pulseController.value * 0.3),
                       ),
                       shape: BoxShape.circle,
                     ),
                     child: child,
                   );
                 },
-                child: Container(
-                  width: 120,
-                  height: 120,
-                  decoration: const BoxDecoration(
+                child: const DecoratedBox(
+                  decoration: BoxDecoration(
                     color: AppColors.primaryBg,
                     shape: BoxShape.circle,
                   ),
-                  child: const Center(
+                  child: Center(
                     child: Icon(
                       Icons.check_circle_outline,
                       size: 64,
@@ -125,36 +135,25 @@ class _WaitingVerificationPageState extends State<WaitingVerificationPage>
                   .animate()
                   .fadeIn(duration: 600.ms)
                   .scale(begin: const Offset(0.5, 0.5), duration: 600.ms),
-
               const SizedBox(height: 32),
-
-              // Title
               Text(
                 'Menunggu Verifikasi',
                 style: Theme.of(context).textTheme.headlineMedium,
                 textAlign: TextAlign.center,
-              )
-                  .animate()
-                  .fadeIn(duration: 400.ms, delay: 200.ms),
-
+              ).animate().fadeIn(duration: 400.ms, delay: 200.ms),
               const SizedBox(height: 12),
-
               Text(
-                'Akun sedang diverifikasi admin.\nProses kurang dari 24 jam.',
+                'Akun sedang diverifikasi admin.\nProses biasanya selesai kurang dari 24 jam.',
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                       color: AppColors.gray600,
                       height: 1.6,
                     ),
-              )
-                  .animate()
-                  .fadeIn(duration: 400.ms, delay: 300.ms),
-
+              ).animate().fadeIn(duration: 400.ms, delay: 300.ms),
               const SizedBox(height: 32),
-
-              // Status indicator
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                 decoration: BoxDecoration(
                   color: AppColors.accentLight,
                   borderRadius: BorderRadius.circular(24),
@@ -162,7 +161,7 @@ class _WaitingVerificationPageState extends State<WaitingVerificationPage>
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    SizedBox(
+                    const SizedBox(
                       width: 16,
                       height: 16,
                       child: CircularProgressIndicator(
@@ -180,13 +179,8 @@ class _WaitingVerificationPageState extends State<WaitingVerificationPage>
                     ),
                   ],
                 ),
-              )
-                  .animate()
-                  .fadeIn(duration: 400.ms, delay: 400.ms),
-
+              ).animate().fadeIn(duration: 400.ms, delay: 400.ms),
               const Spacer(),
-
-              // Cek Status button
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
@@ -203,14 +197,8 @@ class _WaitingVerificationPageState extends State<WaitingVerificationPage>
                       : const Icon(Icons.refresh_rounded),
                   label: Text(_isChecking ? 'Mengecek...' : 'Cek Status'),
                 ),
-              )
-                  .animate()
-                  .fadeIn(duration: 400.ms, delay: 500.ms)
-                  .slideY(begin: 0.3, end: 0, duration: 400.ms, delay: 500.ms),
-
+              ),
               const SizedBox(height: 12),
-
-              // Logout button
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton.icon(
@@ -219,29 +207,11 @@ class _WaitingVerificationPageState extends State<WaitingVerificationPage>
                   label: const Text('Keluar'),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppColors.gray600,
-                    side: BorderSide(color: AppColors.gray300),
+                    side: const BorderSide(color: AppColors.gray300),
                   ),
                 ),
-              )
-                  .animate()
-                  .fadeIn(duration: 400.ms, delay: 600.ms),
-
-              const SizedBox(height: 16),
-
-              // Help text
-              TextButton(
-                onPressed: () {
-                  // TODO: Open support chat
-                },
-                child: Text(
-                  'Butuh bantuan? Hubungi Admin',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppColors.primary,
-                      ),
-                ),
               ),
-
-              const SizedBox(height: 24),
+              const SizedBox(height: 40),
             ],
           ),
         ),
