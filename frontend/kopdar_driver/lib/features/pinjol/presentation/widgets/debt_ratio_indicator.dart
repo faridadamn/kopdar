@@ -1,11 +1,12 @@
 import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
-import '../../../config/theme.dart';
+
+import 'package:kopdar_driver/config/theme.dart';
 
 /// Visual debt-to-income ratio indicator.
-/// Shows a circular gauge with the ratio percentage.
 class DebtRatioIndicator extends StatelessWidget {
-  final double ratio; // 0.0 to 1.0+
+  final double ratio;
   final double size;
 
   const DebtRatioIndicator({
@@ -14,28 +15,24 @@ class DebtRatioIndicator extends StatelessWidget {
     this.size = 100,
   });
 
+  double get _safeRatio => ratio.isFinite ? ratio : 0;
+
   Color get _color {
-    if (ratio <= 0.2) return AppColors.success;
-    if (ratio <= 0.3) return AppColors.warning;
+    if (_safeRatio <= 0.2) return AppColors.success;
+    if (_safeRatio <= 0.3) return AppColors.warning;
     return AppColors.danger;
   }
 
   String get _label {
-    if (ratio <= 0.2) return 'Sehat';
-    if (ratio <= 0.3) return 'Waspada';
+    if (_safeRatio <= 0.2) return 'Sehat';
+    if (_safeRatio <= 0.3) return 'Waspada';
     return 'Berisiko';
-  }
-
-  String get _emoji {
-    if (ratio <= 0.2) return '🟢';
-    if (ratio <= 0.3) return '🟡';
-    return '🔴';
   }
 
   @override
   Widget build(BuildContext context) {
-    final percent = (ratio * 100).round();
-    final clampedRatio = ratio.clamp(0.0, 1.0);
+    final percent = (_safeRatio * 100).round();
+    final clampedRatio = _safeRatio.clamp(0.0, 1.0).toDouble();
 
     return Column(
       children: [
@@ -53,6 +50,8 @@ class DebtRatioIndicator extends StatelessWidget {
                 children: [
                   Text(
                     '$percent%',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       fontSize: size * 0.24,
                       fontWeight: FontWeight.w800,
@@ -75,6 +74,7 @@ class DebtRatioIndicator extends StatelessWidget {
         const SizedBox(height: 8),
         Text(
           'Rasio Cicilan/Penghasilan',
+          textAlign: TextAlign.center,
           style: TextStyle(
             fontSize: 11,
             color: AppColors.gray500,
@@ -98,8 +98,7 @@ class _GaugePainter extends CustomPainter {
     const startAngle = -math.pi * 0.75;
     const sweepAngle = math.pi * 1.5;
 
-    // Background arc
-    final bgPaint = Paint()
+    final backgroundPaint = Paint()
       ..color = AppColors.gray200
       ..style = PaintingStyle.stroke
       ..strokeWidth = 8
@@ -110,10 +109,9 @@ class _GaugePainter extends CustomPainter {
       startAngle,
       sweepAngle,
       false,
-      bgPaint,
+      backgroundPaint,
     );
 
-    // Value arc
     final valuePaint = Paint()
       ..color = color
       ..style = PaintingStyle.stroke
