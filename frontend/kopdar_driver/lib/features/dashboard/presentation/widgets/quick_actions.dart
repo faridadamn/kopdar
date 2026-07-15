@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../../config/theme.dart';
+
+import 'package:kopdar_driver/config/theme.dart';
 
 /// Data class for a single quick-action button.
 class QuickAction {
@@ -16,7 +17,7 @@ class QuickAction {
   });
 }
 
-/// 4-button grid of quick actions on the dashboard.
+/// Horizontal quick actions on the dashboard.
 class QuickActionsGrid extends StatelessWidget {
   final VoidCallback? onTabungan;
   final VoidCallback? onAsuransi;
@@ -80,10 +81,12 @@ class QuickActionsGrid extends StatelessWidget {
       scrollDirection: Axis.horizontal,
       child: Row(
         children: actions
-            .map((a) => SizedBox(
-                  width: 72,
-                  child: _QuickActionButton(action: a),
-                ))
+            .map(
+              (action) => SizedBox(
+                width: 72,
+                child: _QuickActionButton(action: action),
+              ),
+            )
             .toList(),
       ),
     );
