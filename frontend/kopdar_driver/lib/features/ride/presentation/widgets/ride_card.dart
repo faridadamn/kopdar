@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import '../../../../config/theme.dart';
-import '../../../core/utils/formatters.dart';
-import '../../data/models/ride_model.dart';
+
+import 'package:kopdar_driver/config/theme.dart';
+import 'package:kopdar_driver/core/utils/formatters.dart';
+import 'package:kopdar_driver/features/ride/data/models/ride_model.dart';
 
 /// Ride/order card showing platform, route, earnings, etc.
 class RideCard extends StatelessWidget {
@@ -21,37 +22,46 @@ class RideCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
             color: ride.status == 'cancelled'
-                ? AppColors.danger.withOpacity(0.2)
+                ? AppColors.danger.withValues(alpha: 0.2)
                 : AppColors.gray200,
           ),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ── Platform + time ──
             Row(
               children: [
-                Text(ride.platformEmoji,
-                    style: const TextStyle(fontSize: 16)),
-                const SizedBox(width: 6),
                 Text(
-                  ride.platformName,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 13,
-                    color: AppColors.gray900,
+                  ride.platformEmoji,
+                  style: const TextStyle(fontSize: 16),
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    ride.platformName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 13,
+                      color: AppColors.gray900,
+                    ),
                   ),
                 ),
-                const Spacer(),
+                const SizedBox(width: 8),
                 Container(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 8, vertical: 3),
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
                   decoration: BoxDecoration(
-                    color: _statusColor.withOpacity(0.1),
+                    color: _statusColor.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
                     ride.statusLabel,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w600,
@@ -62,8 +72,6 @@ class RideCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 10),
-
-            // ── Route ──
             Row(
               children: [
                 Column(
@@ -98,23 +106,23 @@ class RideCard extends StatelessWidget {
                     children: [
                       Text(
                         ride.pickupAddress ?? '-',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w500,
                           color: AppColors.gray800,
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 12),
                       Text(
                         ride.dropoffAddress ?? '-',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           fontSize: 13,
                           color: AppColors.gray600,
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
                       ),
                     ],
                   ),
@@ -122,39 +130,38 @@ class RideCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 10),
-
-            // ── Stats row ──
             Row(
               children: [
-                _MiniStat(
-                    icon: '🛣️', value: ride.distanceFormatted),
+                _MiniStat(icon: '🛣️', value: ride.distanceFormatted),
                 const SizedBox(width: 14),
-                _MiniStat(
-                    icon: '⏱️', value: ride.durationFormatted),
+                _MiniStat(icon: '⏱️', value: ride.durationFormatted),
                 const Spacer(),
-                Text(
-                  Formatters.currency(ride.earnings),
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 16,
-                    color: AppColors.primary,
+                Flexible(
+                  child: Text(
+                    Formatters.currency(ride.earnings),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.end,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 16,
+                      color: AppColors.primary,
+                    ),
                   ),
                 ),
               ],
             ),
-
-            // ── Rating ──
             if (ride.rating != null) ...[
               const SizedBox(height: 8),
               Row(
                 children: List.generate(
                   5,
-                  (i) => Icon(
-                    i < ride.rating!.round()
+                  (index) => Icon(
+                    index < ride.rating!.round()
                         ? Icons.star_rounded
                         : Icons.star_outline_rounded,
                     size: 16,
-                    color: i < ride.rating!.round()
+                    color: index < ride.rating!.round()
                         ? AppColors.warning
                         : AppColors.gray300,
                   ),
@@ -187,20 +194,26 @@ class _MiniStat extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(icon, style: const TextStyle(fontSize: 12)),
-        const SizedBox(width: 4),
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 12,
-            color: AppColors.gray600,
-            fontWeight: FontWeight.w500,
+    return Flexible(
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(icon, style: const TextStyle(fontSize: 12)),
+          const SizedBox(width: 4),
+          Flexible(
+            child: Text(
+              value,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 12,
+                color: AppColors.gray600,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
