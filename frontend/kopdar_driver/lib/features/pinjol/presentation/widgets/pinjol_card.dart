@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import '../../../config/theme.dart';
-import '../../../core/utils/formatters.dart';
-import '../../data/models/pinjol_model.dart';
-import 'risk_badge.dart';
+
+import 'package:kopdar_driver/config/theme.dart';
+import 'package:kopdar_driver/core/utils/formatters.dart';
+import 'package:kopdar_driver/features/pinjol/data/models/pinjol_model.dart';
+import 'package:kopdar_driver/features/pinjol/presentation/widgets/risk_badge.dart';
 
 /// Card widget for a single loan in the pinjol list.
 class PinjolCard extends StatelessWidget {
@@ -26,7 +27,7 @@ class PinjolCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.04),
+              color: Colors.black.withValues(alpha: 0.04),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -35,7 +36,6 @@ class PinjolCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ── App name + risk badge ──
             Row(
               children: [
                 Container(
@@ -55,6 +55,8 @@ class PinjolCard extends StatelessWidget {
                     children: [
                       Text(
                         loan.appName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w700,
@@ -64,7 +66,9 @@ class PinjolCard extends StatelessWidget {
                       const SizedBox(height: 2),
                       Text(
                         'Bunga ${loan.interestRate.toStringAsFixed(1)}%/bulan',
-                        style: TextStyle(
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
                           fontSize: 12,
                           color: AppColors.gray500,
                         ),
@@ -72,39 +76,32 @@ class PinjolCard extends StatelessWidget {
                     ],
                   ),
                 ),
+                const SizedBox(width: 8),
                 RiskBadge(riskLevel: loan.riskLevel, compact: true),
               ],
             ),
             const SizedBox(height: 14),
-
-            // ── Stats row ──
             Row(
               children: [
                 Expanded(
                   child: _MiniStat(
                     label: 'Sisa Pinjaman',
                     value: Formatters.currencyCompact(
-                        loan.outstandingAmount.toInt()),
+                      loan.outstandingAmount.toInt(),
+                    ),
                   ),
                 ),
-                Container(
-                  width: 1,
-                  height: 28,
-                  color: AppColors.gray200,
-                ),
+                Container(width: 1, height: 28, color: AppColors.gray200),
                 Expanded(
                   child: _MiniStat(
                     label: 'Cicilan/Bulan',
                     value: Formatters.currency(
-                        loan.monthlyInstallment.toInt()),
+                      loan.monthlyInstallment.toInt(),
+                    ),
                     alignment: CrossAxisAlignment.center,
                   ),
                 ),
-                Container(
-                  width: 1,
-                  height: 28,
-                  color: AppColors.gray200,
-                ),
+                Container(width: 1, height: 28, color: AppColors.gray200),
                 Expanded(
                   child: _MiniStat(
                     label: 'Sisa Bulan',
@@ -139,11 +136,15 @@ class _MiniStat extends StatelessWidget {
       children: [
         Text(
           label,
-          style: TextStyle(fontSize: 10, color: AppColors.gray500),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(fontSize: 10, color: AppColors.gray500),
         ),
         const SizedBox(height: 2),
         Text(
           value,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
           style: const TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w700,
