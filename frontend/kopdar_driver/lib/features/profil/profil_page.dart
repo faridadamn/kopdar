@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../common/widgets/app_bar.dart';
 
 /// Redirect page — the real profile page is at
 /// features/profile/presentation/pages/profil_page.dart
