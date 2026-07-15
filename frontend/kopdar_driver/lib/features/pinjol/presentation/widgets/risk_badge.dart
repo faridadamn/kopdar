@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
-import '../../../config/theme.dart';
+
+import 'package:kopdar_driver/config/theme.dart';
 
 /// Risk level badge with colored container.
 class RiskBadge extends StatelessWidget {
-  final String riskLevel; // safe, warning, danger
+  final String riskLevel;
   final bool compact;
 
   const RiskBadge({
@@ -12,21 +13,23 @@ class RiskBadge extends StatelessWidget {
     this.compact = false,
   });
 
+  String get _normalizedRiskLevel => riskLevel.trim().toLowerCase();
+
   Color get _backgroundColor {
-    switch (riskLevel) {
+    switch (_normalizedRiskLevel) {
       case 'safe':
-        return AppColors.success.withOpacity(0.12);
+        return AppColors.success.withValues(alpha: 0.12);
       case 'warning':
-        return AppColors.warning.withOpacity(0.12);
+        return AppColors.warning.withValues(alpha: 0.12);
       case 'danger':
-        return AppColors.danger.withOpacity(0.12);
+        return AppColors.danger.withValues(alpha: 0.12);
       default:
         return AppColors.gray200;
     }
   }
 
   Color get _textColor {
-    switch (riskLevel) {
+    switch (_normalizedRiskLevel) {
       case 'safe':
         return AppColors.success;
       case 'warning':
@@ -39,7 +42,7 @@ class RiskBadge extends StatelessWidget {
   }
 
   String get _emoji {
-    switch (riskLevel) {
+    switch (_normalizedRiskLevel) {
       case 'safe':
         return '🟢';
       case 'warning':
@@ -52,7 +55,7 @@ class RiskBadge extends StatelessWidget {
   }
 
   String get _label {
-    switch (riskLevel) {
+    switch (_normalizedRiskLevel) {
       case 'safe':
         return 'Aman';
       case 'warning':
@@ -60,7 +63,7 @@ class RiskBadge extends StatelessWidget {
       case 'danger':
         return 'Berisiko';
       default:
-        return riskLevel;
+        return riskLevel.trim().isEmpty ? 'Tidak diketahui' : riskLevel.trim();
     }
   }
 
@@ -80,12 +83,16 @@ class RiskBadge extends StatelessWidget {
         children: [
           Text(_emoji, style: TextStyle(fontSize: compact ? 10 : 12)),
           const SizedBox(width: 4),
-          Text(
-            _label,
-            style: TextStyle(
-              fontSize: compact ? 10 : 12,
-              fontWeight: FontWeight.w700,
-              color: _textColor,
+          Flexible(
+            child: Text(
+              _label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: compact ? 10 : 12,
+                fontWeight: FontWeight.w700,
+                color: _textColor,
+              ),
             ),
           ),
         ],
