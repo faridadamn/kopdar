@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import '../../../../core/storage/local_storage.dart';
 import '../../../../config/constants.dart';
@@ -29,7 +30,6 @@ class AuthProvider extends ChangeNotifier {
   String? get userName => _userName;
   String? get userPhone => _userPhone;
   String? get driverStatus => _driverStatus;
-
   bool get isAuthenticated => _status == AuthStatus.authenticated;
   bool get isPending => _status == AuthStatus.pendingVerification;
 
@@ -39,20 +39,21 @@ class AuthProvider extends ChangeNotifier {
   }
 
   void _loadFromStorage() {
-    final isLoggedIn = LocalStorage.isLoggedIn;
-    if (isLoggedIn) {
-      _userId = LocalStorage.getString(AppConstants.keyUserId);
-      _userName = LocalStorage.getString(AppConstants.keyUserName);
-      _userPhone = LocalStorage.getString(AppConstants.keyUserPhone);
-      _driverStatus = LocalStorage.getString(AppConstants.keyDriverStatus);
+    if (!LocalStorage.isLoggedIn) {
+      _status = AuthStatus.unauthenticated;
+      notifyListeners();
+      return;
+    }
 
-      if (_driverStatus == 'pending') {
-        _status = AuthStatus.pendingVerification;
-      } else if (LocalStorage.getBool(AppConstants.keyIsVerified) == true) {
-        _status = AuthStatus.authenticated;
-      } else {
-        _status = AuthStatus.unauthenticated;
-      }
+    _userId = LocalStorage.getString(AppConstants.keyUserId);
+    _userName = LocalStorage.getString(AppConstants.keyUserName);
+    _userPhone = LocalStorage.getString(AppConstants.keyUserPhone);
+    _driverStatus = LocalStorage.getString(AppConstants.keyDriverStatus);
+
+    if (_driverStatus == 'pending') {
+      _status = AuthStatus.pendingVerification;
+    } else if (LocalStorage.getBool(AppConstants.keyIsVerified) == true) {
+      _status = AuthStatus.authenticated;
     } else {
       _status = AuthStatus.unauthenticated;
     }
@@ -106,26 +107,58 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> submitRegistration({
-    required String name,
+  Future<bool> submitDriverRegistration({
+    required String fullName,
     required String nik,
+    required DateTime dateOfBirth,
     required String address,
-    required String province,
     required String city,
+    required String province,
     required String vehicleType,
-    required String vehicleBrand,
-    required String vehicleModel,
-    required int vehicleYear,
-    required String vehiclePlat,
-    required String vehicleColor,
-    required List<String> platforms,
-    required String bankName,
-    required String bankAccountNumber,
-    required String bankAccountName,
+    required String vehiclePlate,
+    required File ktpPhoto,
+    required File selfiePhoto,
+    required File stnkPhoto,
+    String postalCode = '',
+    int? vehicleYear,
+    String emergencyContactName = '',
+    String emergencyContactPhone = '',
+    List<String> platforms = const [],
   }) async {
-    return _setError(
-      'Form registrasi belum lengkap. Tanggal lahir, KTP, selfie, dan STNK wajib diisi.',
-    );
+    _setLoading();
+    try {
+      await _remoteDataSource.submitDriverRegistration(
+        fullName: fullName,
+        nik: nik,
+        dateOfBirth: _formatDate(dateOfBirth),
+        address: address,
+        city: city,
+        province: province,
+        postalCode: postalCode,
+        vehicleType: vehicleType,
+        vehiclePlate: vehiclePlate,
+        vehicleYear: vehicleYear,
+        emergencyContactName: emergencyContactName,
+        emergencyContactPhone: emergencyContactPhone,
+        platforms: platforms,
+        ktpPhoto: ktpPhoto,
+        selfiePhoto: selfiePhoto,
+        stnkPhoto: stnkPhoto,
+      );
+
+      _userName = fullName;
+      _driverStatus = 'pending';
+      await LocalStorage.setString(AppConstants.keyUserName, fullName);
+      await LocalStorage.setString(AppConstants.keyDriverStatus, 'pending');
+      await LocalStorage.setBool(AppConstants.keyIsVerified, false);
+      _status = AuthStatus.pendingVerification;
+      notifyListeners();
+      return true;
+    } on AppException catch (e) {
+      return _setError(e.message);
+    } catch (_) {
+      return _setError('Gagal mengirim pendaftaran. Silakan coba lagi.');
+    }
   }
 
   Future<void> checkVerificationStatus() async {
@@ -163,9 +196,7 @@ class AuthProvider extends ChangeNotifier {
       notifyListeners();
     } on UnauthorizedException {
       await _clearSession();
-    } catch (_) {
-      // Keep the current screen when a background status check fails.
-    }
+    } catch (_) {}
   }
 
   Future<void> logout() async {
@@ -187,6 +218,9 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  String _formatDate(DateTime date) =>
+      '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+
   void _setLoading() {
     _status = AuthStatus.loading;
     _errorMessage = null;
@@ -202,9 +236,7 @@ class AuthProvider extends ChangeNotifier {
 
   void clearError() {
     _errorMessage = null;
-    if (_status == AuthStatus.error) {
-      _status = AuthStatus.unauthenticated;
-    }
+    if (_status == AuthStatus.error) _status = AuthStatus.unauthenticated;
     notifyListeners();
   }
 }
