@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import '../../../../config/theme.dart';
-import '../../../core/utils/formatters.dart';
-import '../../data/models/vehicle_model.dart';
+
+import 'package:kopdar_driver/config/theme.dart';
+import 'package:kopdar_driver/core/utils/formatters.dart';
+import 'package:kopdar_driver/features/profile/data/models/vehicle_model.dart';
 
 /// Document tile: icon, type, status badge, expiry, actions.
 class DocumentTile extends StatelessWidget {
@@ -32,7 +33,6 @@ class DocumentTile extends StatelessWidget {
       ),
       child: Row(
         children: [
-          // Document icon
           Container(
             width: 44,
             height: 44,
@@ -48,20 +48,22 @@ class DocumentTile extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 12),
-
-          // Info
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
-                    Text(
-                      document.typeLabel,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 14,
-                        color: AppColors.gray900,
+                    Flexible(
+                      child: Text(
+                        document.typeLabel,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 14,
+                          color: AppColors.gray900,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -82,6 +84,8 @@ class DocumentTile extends StatelessWidget {
                 if (document.expiryDate != null)
                   Text(
                     'Berlaku s/d ${Formatters.date(document.expiryDate!)}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       fontSize: 11,
                       color: document.isExpiringSoon
@@ -95,8 +99,6 @@ class DocumentTile extends StatelessWidget {
               ],
             ),
           ),
-
-          // Action
           if (document.fileUrl != null)
             IconButton(
               icon: Icon(
@@ -123,19 +125,24 @@ class DocumentTile extends StatelessWidget {
   Color get _borderColor {
     if (document.isExpiringSoon) return AppColors.warning;
     if (document.isRejected) return AppColors.danger;
-    if (document.isVerified) return AppColors.success.withOpacity(0.3);
+    if (document.isVerified) {
+      return AppColors.success.withValues(alpha: 0.3);
+    }
     return AppColors.gray200;
   }
 
   Color get _iconBgColor {
-    if (document.isVerified) return AppColors.success.withOpacity(0.1);
+    if (document.isVerified) {
+      return AppColors.success.withValues(alpha: 0.1);
+    }
     if (document.isRejected) return AppColors.dangerLight;
-    if (document.isExpiringSoon) return AppColors.warning.withOpacity(0.1);
+    if (document.isExpiringSoon) {
+      return AppColors.warning.withValues(alpha: 0.1);
+    }
     return AppColors.gray100;
   }
 }
 
-/// Status badge chip.
 class _StatusBadge extends StatelessWidget {
   final String status;
 
@@ -146,11 +153,13 @@ class _StatusBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
-        color: _color.withOpacity(0.12),
+        color: _color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(4),
       ),
       child: Text(
         _label,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
         style: TextStyle(
           fontSize: 9,
           fontWeight: FontWeight.w700,
