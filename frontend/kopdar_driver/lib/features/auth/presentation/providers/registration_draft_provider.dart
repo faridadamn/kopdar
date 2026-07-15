@@ -90,7 +90,11 @@ class RegistrationDraftProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void setDocuments({File? ktp, File? selfie, File? stnk}) {
+  void setDocuments({
+    File? ktp,
+    File? selfie,
+    File? stnk,
+  }) {
     if (ktp != null) ktpPhoto = ktp;
     if (selfie != null) selfiePhoto = selfie;
     if (stnk != null) stnkPhoto = stnk;
@@ -107,20 +111,24 @@ class RegistrationDraftProvider extends ChangeNotifier {
 
   bool get hasRequiredVehicleData =>
       vehicleType.isNotEmpty &&
-      vehicleBrand.isNotEmpty &&
       vehicleModel.isNotEmpty &&
       vehicleYear != null &&
-      vehiclePlate.isNotEmpty &&
-      vehicleColor.isNotEmpty;
+      vehiclePlate.isNotEmpty;
 
   bool get hasRequiredDocuments =>
       ktpPhoto != null && selfiePhoto != null && stnkPhoto != null;
+
+  bool get hasRequiredBankData =>
+      bankName.isNotEmpty &&
+      bankAccountNumber.isNotEmpty &&
+      bankAccountName.isNotEmpty;
 
   bool get isComplete =>
       hasRequiredPersonalData &&
       hasRequiredVehicleData &&
       platforms.isNotEmpty &&
-      hasRequiredDocuments;
+      hasRequiredDocuments &&
+      hasRequiredBankData;
 
   void clear() {
     fullName = '';
