@@ -1,3 +1,5 @@
+import 'dart:collection';
+
 import 'package:flutter/material.dart';
 
 import 'package:kopdar_driver/features/finance/data/datasources/finance_remote_ds.dart';
@@ -10,7 +12,9 @@ class FinanceProvider extends ChangeNotifier {
   final FinanceRemoteDataSource _dataSource;
 
   FinanceProvider({FinanceRemoteDataSource? dataSource})
-      : _dataSource = dataSource ?? FinanceRemoteDataSource();
+      : _dataSource = dataSource ?? FinanceRemoteDataSource() {
+    exportData = ExportDataController._(this);
+  }
 
   FinanceStatus _hourlyRateStatus = FinanceStatus.initial;
   FinanceStatus _insightsStatus = FinanceStatus.initial;
@@ -22,6 +26,8 @@ class FinanceProvider extends ChangeNotifier {
 
   String? _errorMessage;
   String _hourlyRatePeriod = 'today';
+
+  late final ExportDataController exportData;
 
   FinanceStatus get hourlyRateStatus => _hourlyRateStatus;
   FinanceStatus get insightsStatus => _insightsStatus;
@@ -71,7 +77,7 @@ class FinanceProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> exportData({
+  Future<bool> _loadExportData({
     required DateTime dateFrom,
     required DateTime dateTo,
     required String type,
@@ -117,5 +123,39 @@ class FinanceProvider extends ChangeNotifier {
     }
 
     return buffer.toString();
+  }
+}
+
+class ExportDataController extends ListBase<Map<String, dynamic>> {
+  final FinanceProvider _provider;
+
+  ExportDataController._(this._provider);
+
+  Future<bool> call({
+    required DateTime dateFrom,
+    required DateTime dateTo,
+    required String type,
+  }) {
+    return _provider._loadExportData(
+      dateFrom: dateFrom,
+      dateTo: dateTo,
+      type: type,
+    );
+  }
+
+  @override
+  int get length => _provider._exportRows.length;
+
+  @override
+  set length(int value) {
+    throw UnsupportedError('Export data is read-only.');
+  }
+
+  @override
+  Map<String, dynamic> operator [](int index) => _provider._exportRows[index];
+
+  @override
+  void operator []=(int index, Map<String, dynamic> value) {
+    throw UnsupportedError('Export data is read-only.');
   }
 }
