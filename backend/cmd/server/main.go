@@ -19,22 +19,22 @@ import (
 )
 
 func main() {
-	cfg := config.Load()
+	cfg, err := config.Load()
+	if err != nil {
+		log.Fatalf("Invalid configuration: %v", err)
+	}
 
-	// Database connection
 	pool, err := pgxpool.New(context.Background(), cfg.DatabaseURL)
 	if err != nil {
 		log.Fatalf("Unable to connect to database: %v", err)
 	}
 	defer pool.Close()
 
-	// Verify connection
 	if err := pool.Ping(context.Background()); err != nil {
 		log.Fatalf("Unable to ping database: %v", err)
 	}
 	log.Println("Connected to database")
 
-	// Repositories
 	userRepo := repository.NewUserRepository(pool)
 	tokenRepo := repository.NewTokenRepository(pool)
 	driverRepo := repository.NewDriverRepository(pool)
@@ -46,12 +46,10 @@ func main() {
 	emergRepo := repository.NewEmergencyRepository(pool)
 	profileRepo := repository.NewProfileRepository(pool)
 
-	// Services
 	otpSvc := services.NewOTPService(cfg.OTPMode == "true")
 	authSvc := services.NewAuthService(userRepo, tokenRepo, otpSvc, cfg.JWTSecret)
 	pointsSvc := services.NewPointsService(profileRepo)
 
-	// Handlers
 	authHandler := handlers.NewAuthHandler(authSvc, otpSvc)
 	driverHandler := handlers.NewDriverHandler(driverRepo, userRepo, cfg.UploadDir)
 	adminHandler := handlers.NewAdminHandler(driverRepo, userRepo)
@@ -70,17 +68,15 @@ func main() {
 	referralHandler := handlers.NewReferralHandler(profileRepo, driverRepo, pointsSvc)
 	settingsHandler := handlers.NewSettingsHandler(profileRepo, driverRepo)
 
-	// Router
 	router := gin.Default()
 	router.Use(middleware.CORS())
 
-	// Ensure upload dir exists
-	os.MkdirAll(cfg.UploadDir, 0755)
+	if err := os.MkdirAll(cfg.UploadDir, 0750); err != nil {
+		log.Fatalf("Unable to create upload directory: %v", err)
+	}
 
-	// Health
 	router.GET("/api/v1/health", handlers.HealthCheck)
 
-	// Auth routes (public)
 	auth := router.Group("/api/v1/auth")
 	{
 		auth.POST("/register", authHandler.Register)
@@ -90,7 +86,6 @@ func main() {
 		auth.DELETE("/logout", authHandler.Logout)
 	}
 
-	// Driver routes (authenticated)
 	driver := router.Group("/api/v1/driver")
 	driver.Use(middleware.AuthMiddleware(authSvc))
 	{
@@ -99,7 +94,6 @@ func main() {
 		driver.PUT("/profile", driverHandler.UpdateProfile)
 		driver.GET("/status", driverHandler.GetStatus)
 
-		// Transaction routes
 		transaction := driver.Group("/transactions")
 		{
 			transaction.POST("", transactionHandler.Create)
@@ -110,17 +104,13 @@ func main() {
 			transaction.DELETE("/:id", transactionHandler.Delete)
 		}
 
-		// Dashboard
 		driver.GET("/dashboard", dashboardHandler.Get)
-
-		// Sprint 3: Hourly Rate, Expenses, Export, Insights
 		driver.GET("/hourly-rate", hourlyRateHandler.Get)
 		driver.GET("/expenses", expenseHandler.List)
 		driver.GET("/expenses/summary", expenseHandler.Summary)
 		driver.GET("/export", exportHandler.CSV)
 		driver.GET("/insights", insightsHandler.Get)
 
-		// Sprint 4: Savings
 		driver.POST("/savings", savingHandler.Create)
 		driver.GET("/savings", savingHandler.List)
 		driver.GET("/savings/:id", savingHandler.Get)
@@ -130,7 +120,6 @@ func main() {
 		driver.PUT("/savings/:id/pause", savingHandler.Pause)
 		driver.PUT("/savings/:id/resume", savingHandler.Resume)
 
-		// Sprint 4: Pinjol
 		driver.POST("/pinjol", pinjolHandler.Create)
 		driver.GET("/pinjol", pinjolHandler.List)
 		driver.GET("/pinjol/:id", pinjolHandler.Get)
@@ -138,7 +127,6 @@ func main() {
 		driver.DELETE("/pinjol/:id", pinjolHandler.Delete)
 		driver.GET("/pinjol/:id/simulate", pinjolHandler.Simulate)
 
-		// Sprint 6: Community & Forum
 		comm := driver.Group("/community")
 		{
 			comm.POST("/posts", commHandler.CreatePost)
@@ -155,7 +143,6 @@ func main() {
 			comm.GET("/advocacy", commHandler.AdvocacyData)
 		}
 
-		// Sprint 7: SOS & Emergency
 		emerg := driver.Group("/emergency")
 		{
 			emerg.GET("/setup", emergHandler.GetSetup)
@@ -177,10 +164,8 @@ func main() {
 			emerg.POST("/:id/feedback", emergHandler.SubmitFeedback)
 		}
 
-		// Sprint 8: Profile, Level, Referral, Settings
 		driver.PUT("/profile/photo", profileHandler.UpdatePhoto)
 		driver.GET("/level", profileHandler.GetLevel)
-		driver.POST("/level/add-points", profileHandler.AddPoints)
 
 		driver.GET("/referral", referralHandler.GetInfo)
 		driver.POST("/referral/apply", referralHandler.ApplyCode)
@@ -191,7 +176,6 @@ func main() {
 		driver.POST("/settings/test-notification", settingsHandler.TestNotification)
 		driver.DELETE("/account", settingsHandler.DeleteAccount)
 
-		// Sprint 5: Insurance
 		insurance := driver.Group("/insurance")
 		{
 			insurance.GET("/products", insuranceHandler.ListProducts)
@@ -206,7 +190,6 @@ func main() {
 		}
 	}
 
-	// Admin routes (authenticated + admin role)
 	admin := router.Group("/api/v1/admin")
 	admin.Use(middleware.AuthMiddleware(authSvc))
 	admin.Use(middleware.AdminMiddleware())
@@ -218,13 +201,15 @@ func main() {
 		admin.GET("/stats", adminHandler.GetStats)
 	}
 
-	// Start server with graceful shutdown
 	srv := &http.Server{
-		Addr:    ":" + cfg.Port,
-		Handler: router,
+		Addr:              ":" + cfg.Port,
+		Handler:           router,
+		ReadHeaderTimeout: 10 * time.Second,
+		ReadTimeout:       30 * time.Second,
+		WriteTimeout:      30 * time.Second,
+		IdleTimeout:       60 * time.Second,
 	}
 
-	// Seed insurance products
 	services.SeedInsuranceProducts(context.Background(), pool)
 
 	go func() {
@@ -234,7 +219,6 @@ func main() {
 		}
 	}()
 
-	// Wait for interrupt
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
