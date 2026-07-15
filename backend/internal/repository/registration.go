@@ -2,13 +2,17 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/kopdar/backend/internal/models"
 )
+
+var ErrRegistrationConflict = errors.New("driver registration conflict")
 
 // RegisterDriver atomically updates the user name, creates the driver profile,
 // and stores all selected platform associations. Any failure rolls back the
@@ -50,6 +54,10 @@ func (r *DriverRepository) RegisterDriver(fullName string, driver *models.Driver
 		driver.ReferralCode, driver.VerificationStatus,
 	).Scan(&driver.ID, &driver.CreatedAt, &driver.UpdatedAt)
 	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			return ErrRegistrationConflict
+		}
 		return fmt.Errorf("create driver profile: %w", err)
 	}
 
