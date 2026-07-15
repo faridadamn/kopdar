@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -114,7 +115,11 @@ func (h *DriverHandler) Register(c *gin.Context) {
 
 	if err := h.driverRepo.RegisterDriver(req.FullName, driver, platforms); err != nil {
 		cleanup()
-		utils.InternalError(c, "Failed to create driver registration: "+err.Error())
+		if errors.Is(err, repository.ErrRegistrationConflict) {
+			utils.Conflict(c, "Registration data is already in use")
+			return
+		}
+		utils.InternalError(c, "Failed to create driver registration")
 		return
 	}
 
