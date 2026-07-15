@@ -66,7 +66,6 @@ void main() {
     });
 
     test('updateProfile success updates profile', () async {
-      // First set a profile
       when(() => mockDataSource.getProfile()).thenAnswer(
         (_) async => ProfileModel.fromJson({
           'id': 'p-1',
@@ -79,7 +78,6 @@ void main() {
       );
       await provider.fetchProfile();
 
-      // Then update
       when(() => mockDataSource.updateProfile(name: 'New Name')).thenAnswer(
         (_) async => ProfileModel.fromJson({
           'id': 'p-1',
@@ -192,7 +190,7 @@ void main() {
     });
 
     test('setPrimaryVehicle updates local state', () async {
-      final vehicles = [
+      final vehiclesBefore = [
         VehicleModel.fromJson({
           'id': 'v-1',
           'type': 'Motor',
@@ -216,8 +214,15 @@ void main() {
           'created_at': '2026-01-01T00:00:00.000',
         }),
       ];
-
-      when(() => mockDataSource.getVehicles()).thenAnswer((_) async => vehicles);
+      final vehiclesAfter = [
+        vehiclesBefore[0].copyWith(isPrimary: false),
+        vehiclesBefore[1].copyWith(isPrimary: true),
+      ];
+      var fetchCount = 0;
+      when(() => mockDataSource.getVehicles()).thenAnswer((_) async {
+        fetchCount += 1;
+        return fetchCount == 1 ? vehiclesBefore : vehiclesAfter;
+      });
       await provider.fetchVehicles();
 
       when(() => mockDataSource.setPrimaryVehicle('v-2'))
@@ -226,9 +231,10 @@ void main() {
       final result = await provider.setPrimaryVehicle('v-2');
 
       expect(result, isTrue);
-      expect(provider.vehicles[0].isPrimary, isFalse); // v-1
-      expect(provider.vehicles[1].isPrimary, isTrue); // v-2
+      expect(provider.vehicles[0].isPrimary, isFalse);
+      expect(provider.vehicles[1].isPrimary, isTrue);
       expect(provider.primaryVehicle!.id, 'v-2');
+      verify(() => mockDataSource.getVehicles()).called(2);
     });
   });
 
