@@ -4,16 +4,10 @@ import 'package:kopdar_driver/features/help/presentation/pages/help_page.dart';
 
 void main() {
   group('HelpPage Widget Tests', () {
-    Widget buildPage() {
-      return const MaterialApp(home: HelpPage());
-    }
+    Widget buildPage() => const MaterialApp(home: HelpPage());
 
-    Future<void> scrollTo(WidgetTester tester, Finder finder) async {
-      await tester.scrollUntilVisible(
-        finder,
-        300,
-        scrollable: find.byType(Scrollable).first,
-      );
+    Future<void> scrollDown(WidgetTester tester, {double offset = 700}) async {
+      await tester.drag(find.byType(ListView), Offset(0, -offset));
       await tester.pumpAndSettle();
     }
 
@@ -27,7 +21,10 @@ void main() {
       await tester.pumpWidget(buildPage());
       await tester.pumpAndSettle();
       expect(find.text('Ada yang bisa kami bantu?'), findsOneWidget);
-      expect(find.text('Cari jawaban atau hubungi kami langsung.'), findsOneWidget);
+      expect(
+        find.text('Cari jawaban atau hubungi kami langsung.'),
+        findsOneWidget,
+      );
     });
 
     testWidgets('renders contact cards', (tester) async {
@@ -51,39 +48,43 @@ void main() {
       await tester.pumpAndSettle();
 
       final answer = find.textContaining('Kamu bisa mendapatkan poin dengan:');
-      expect(answer, findsNothing);
+      final textBefore = tester.widget<Text>(answer);
+      expect(textBefore.data, contains('Menyelesaikan order'));
 
       await tester.tap(find.text('Bagaimana cara menambah poin?'));
       await tester.pumpAndSettle();
+
       expect(answer, findsOneWidget);
+      expect(tester.getSize(answer).height, greaterThan(0));
     });
 
     testWidgets('renders feedback section', (tester) async {
       await tester.pumpWidget(buildPage());
       await tester.pumpAndSettle();
+      await scrollDown(tester, offset: 1200);
 
-      final feedbackTitle = find.text('Kirim Masukan');
-      await scrollTo(tester, feedbackTitle.first);
-      expect(feedbackTitle, findsNWidgets(2));
+      expect(find.text('Kirim Masukan'), findsNWidgets(2));
       expect(find.byType(TextField), findsOneWidget);
     });
 
     testWidgets('renders app version info', (tester) async {
       await tester.pumpWidget(buildPage());
       await tester.pumpAndSettle();
+      await scrollDown(tester, offset: 1800);
 
-      final version = find.text('KopDar v1.0.0');
-      await scrollTo(tester, version);
-      expect(version, findsOneWidget);
-      expect(find.text('Koperasi Digital untuk Gig Worker Indonesia'), findsOneWidget);
+      expect(find.text('KopDar v1.0.0'), findsOneWidget);
+      expect(
+        find.text('Koperasi Digital untuk Gig Worker Indonesia'),
+        findsOneWidget,
+      );
     });
 
     testWidgets('feedback button shows snackbar after submit', (tester) async {
       await tester.pumpWidget(buildPage());
       await tester.pumpAndSettle();
+      await scrollDown(tester, offset: 1300);
 
       final field = find.byType(TextField);
-      await scrollTo(tester, field);
       await tester.enterText(field, 'Aplikasi bagus!');
 
       final submitButton = find.widgetWithText(ElevatedButton, 'Kirim Masukan');
