@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import '../data/models/ride_model.dart';
-import '../../../../core/network/api_client.dart';
+
+import 'package:kopdar_driver/core/network/api_client.dart';
+import 'package:kopdar_driver/features/ride/data/models/ride_model.dart';
 
 enum RideStatus { initial, loading, loaded, error }
 
@@ -14,30 +15,24 @@ class RideProvider extends ChangeNotifier {
   String? _errorMessage;
 
   RideStatus get status => _status;
-  List<RideModel> get rides => _rides;
+  List<RideModel> get rides => List<RideModel>.unmodifiable(_rides);
   String? get errorMessage => _errorMessage;
   bool get isLoading => _status == RideStatus.loading;
 
-  // Derived stats
-  int get todayEarnings {
+  Iterable<RideModel> get _todayRides {
     final now = DateTime.now();
-    return _rides
-        .where((r) =>
-            r.createdAt.year == now.year &&
-            r.createdAt.month == now.month &&
-            r.createdAt.day == now.day)
-        .fold(0, (sum, r) => sum + r.earnings);
+    return _rides.where(
+      (ride) =>
+          ride.createdAt.year == now.year &&
+          ride.createdAt.month == now.month &&
+          ride.createdAt.day == now.day,
+    );
   }
 
-  int get todayCount {
-    final now = DateTime.now();
-    return _rides
-        .where((r) =>
-            r.createdAt.year == now.year &&
-            r.createdAt.month == now.month &&
-            r.createdAt.day == now.day)
-        .length;
-  }
+  int get todayEarnings =>
+      _todayRides.fold<int>(0, (sum, ride) => sum + ride.earnings);
+
+  int get todayCount => _todayRides.length;
 
   Future<void> fetchRides() async {
     _status = RideStatus.loading;
@@ -46,18 +41,27 @@ class RideProvider extends ChangeNotifier {
 
     try {
       final response = await _api.get('/api/v1/rides');
-      final data = response.data['data'] ?? response.data;
-      final items = data is List
-          ? data
-          : (data['items'] ?? data['rides'] ?? []) as List;
+      final dynamic payload = response.data['data'] ?? response.data;
+      final List<dynamic> items;
+
+      if (payload is List<dynamic>) {
+        items = payload;
+      } else if (payload is Map<String, dynamic>) {
+        final dynamic nestedItems = payload['items'] ?? payload['rides'];
+        items = nestedItems is List<dynamic> ? nestedItems : <dynamic>[];
+      } else {
+        items = <dynamic>[];
+      }
+
       _rides = items
-          .map((e) => RideModel.fromJson(e as Map<String, dynamic>))
-          .toList();
+          .whereType<Map<String, dynamic>>()
+          .map(RideModel.fromJson)
+          .toList(growable: false);
       _status = RideStatus.loaded;
-      notifyListeners();
-    } catch (e) {
+    } catch (_) {
       _status = RideStatus.error;
       _errorMessage = 'Gagal memuat riwayat order.';
+    } finally {
       notifyListeners();
     }
   }
@@ -65,7 +69,9 @@ class RideProvider extends ChangeNotifier {
   Future<RideModel?> getRideDetail(String id) async {
     try {
       final response = await _api.get('/api/v1/rides/$id');
-      return RideModel.fromJson(response.data['data'] ?? response.data);
+      final dynamic payload = response.data['data'] ?? response.data;
+      if (payload is! Map<String, dynamic>) return null;
+      return RideModel.fromJson(payload);
     } catch (_) {
       return null;
     }
