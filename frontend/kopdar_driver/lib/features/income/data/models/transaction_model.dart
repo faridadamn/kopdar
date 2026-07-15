@@ -2,7 +2,7 @@
 /// Used for API serialization and persistence.
 class TransactionModel {
   final String id;
-  final String type; // 'income' or 'expense'
+  final String type;
   final String category;
   final String? platform;
   final double amount;
@@ -28,16 +28,19 @@ class TransactionModel {
   });
 
   factory TransactionModel.fromJson(Map<String, dynamic> json) {
+    final amount = (json['amount'] as num).toDouble();
+    final commission = (json['commission'] as num?)?.toDouble() ?? 0.0;
+    final netAmount =
+        (json['net_amount'] as num?)?.toDouble() ?? (amount - commission);
+
     return TransactionModel(
       id: json['id'] as String,
       type: json['type'] as String,
       category: json['category'] as String,
       platform: json['platform'] as String?,
-      amount: (json['amount'] as num).toDouble(),
-      commission: (json['commission'] as num?)?.toDouble() ?? 0,
-      netAmount: (json['net_amount'] as num?)?.toDouble() ??
-          ((json['amount'] as num).toDouble() -
-              (json['commission'] as num?)?.toDouble() ?? 0),
+      amount: amount,
+      commission: commission,
+      netAmount: netAmount,
       notes: json['notes'] as String?,
       receiptUrl: json['receipt_url'] as String?,
       orderCount: (json['order_count'] as num?)?.toInt() ?? 1,
@@ -61,12 +64,8 @@ class TransactionModel {
     };
   }
 
-  /// Whether this transaction can still be edited (< 24 hours old).
-  bool get isEditable {
-    return DateTime.now().difference(createdAt).inHours < 24;
-  }
+  bool get isEditable => DateTime.now().difference(createdAt).inHours < 24;
 
-  /// Platform display emoji.
   String get platformEmoji {
     switch (platform?.toLowerCase()) {
       case 'gojek':
@@ -86,7 +85,6 @@ class TransactionModel {
     }
   }
 
-  /// Category display emoji (for expenses).
   String get categoryEmoji {
     switch (category.toLowerCase()) {
       case 'bensin':
@@ -108,10 +106,9 @@ class TransactionModel {
     }
   }
 
-  /// Display title for this transaction.
   String get displayTitle {
     if (type == 'income') {
-      return '$platform — $orderCount order';
+      return '${platform ?? 'Pendapatan'} — $orderCount order';
     }
     return category;
   }
