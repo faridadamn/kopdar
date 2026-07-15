@@ -51,7 +51,7 @@ class _BankInfoPageState extends State<BankInfoPage> {
     if (!draft.isComplete) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Data registrasi belum lengkap. Periksa data diri, kendaraan, dokumen, dan platform.'),
+          content: Text('Data registrasi belum lengkap. Periksa seluruh langkah sebelumnya.'),
         ),
       );
       return;
@@ -68,7 +68,13 @@ class _BankInfoPageState extends State<BankInfoPage> {
       postalCode: draft.postalCode,
       vehicleType: draft.vehicleType,
       vehiclePlate: draft.vehiclePlate,
+      vehicleBrand: draft.vehicleBrand,
+      vehicleModel: draft.vehicleModel,
+      vehicleColor: draft.vehicleColor,
       vehicleYear: draft.vehicleYear,
+      bankName: draft.bankName,
+      bankAccountNumber: draft.bankAccountNumber,
+      bankAccountName: draft.bankAccountName,
       emergencyContactName: draft.emergencyContactName,
       emergencyContactPhone: draft.emergencyContactPhone,
       platforms: draft.platforms,
@@ -100,10 +106,7 @@ class _BankInfoPageState extends State<BankInfoPage> {
           children: [
             const LinearProgressIndicator(value: 1),
             const SizedBox(height: 24),
-            Text(
-              'Data pencairan',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
+            Text('Data pencairan', style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
               value: _bank,
