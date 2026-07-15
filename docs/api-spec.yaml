@@ -1,0 +1,1048 @@
+openapi: 3.0.3
+info:
+  title: KopDar API — Koperasi Digital untuk Gig Worker Indonesia
+  description: |
+    REST API for KopDar platform — Sprint 1 endpoints covering Auth, Driver registration/profile,
+    Admin verification, and Health checks.
+  version: 1.0.0
+  contact:
+    name: KopDar Product Team
+  license:
+    name: Proprietary
+
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Local development
+  - url: https://api.kopdar.id/api/v1
+    description: Production
+
+tags:
+  - name: Health
+    description: Service health checks
+  - name: Auth
+    description: Authentication & session management
+  - name: Driver
+    description: Driver registration & profile management
+  - name: Admin
+    description: Admin dashboard & driver verification
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT access token obtained from login/verify-otp
+
+  schemas:
+    # ── Common ──────────────────────────────────────────────
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+          example: "Invalid request body"
+        details:
+          type: object
+          additionalProperties: true
+          description: Optional field-level validation errors
+
+    PaginationMeta:
+      type: object
+      properties:
+        page:
+          type: integer
+          example: 1
+        limit:
+          type: integer
+          example: 20
+        total:
+          type: integer
+          example: 150
+        total_pages:
+          type: integer
+          example: 8
+
+    # ── Auth ────────────────────────────────────────────────
+    AuthTokens:
+      type: object
+      properties:
+        access_token:
+          type: string
+          example: "eyJhbGciOiJIUzI1NiIs..."
+        refresh_token:
+          type: string
+          example: "dGhpcyBpcyBhIHJlZnJlc2g..."
+        expires_in:
+          type: integer
+          description: Access token TTL in seconds
+          example: 3600
+
+    RegisterRequest:
+      type: object
+      required: [phone]
+      properties:
+        phone:
+          type: string
+          pattern: '^(\+62|62|0)[0-9]{9,12}$'
+          example: "081234567890"
+
+    VerifyOtpRequest:
+      type: object
+      required: [phone, otp]
+      properties:
+        phone:
+          type: string
+          example: "081234567890"
+        otp:
+          type: string
+          minLength: 6
+          maxLength: 6
+          example: "123456"
+
+    LoginRequest:
+      type: object
+      required: [phone, otp]
+      properties:
+        phone:
+          type: string
+          example: "081234567890"
+        otp:
+          type: string
+          example: "654321"
+
+    RefreshRequest:
+      type: object
+      required: [refresh_token]
+      properties:
+        refresh_token:
+          type: string
+          example: "dGhpcyBpcyBhIHJlZnJlc2g..."
+
+    # ── Driver ──────────────────────────────────────────────
+    DriverStatus:
+      type: string
+      enum: [pending, approved, rejected, suspended]
+
+    DriverProfile:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          example: "Budi Santoso"
+        nik:
+          type: string
+          example: "3275011234567890"
+        address:
+          type: string
+          example: "Jl. Mampang Prapatan No. 10"
+        city:
+          type: string
+          example: "Jakarta Selatan"
+        province:
+          type: string
+          example: "DKI Jakarta"
+        vehicle_type:
+          type: string
+          enum: [motor, mobil]
+        vehicle_brand:
+          type: string
+          example: "Honda"
+        vehicle_model:
+          type: string
+          example: "Vario 160"
+        vehicle_year:
+          type: integer
+          example: 2024
+        vehicle_plate:
+          type: string
+          example: "B 1234 KPD"
+        vehicle_color:
+          type: string
+          example: "Hitam"
+        bank_name:
+          type: string
+          example: "BCA"
+        bank_account:
+          type: string
+          example: "1234567890"
+        bank_holder:
+          type: string
+          example: "BUDI SANTOSO"
+        platforms:
+          type: array
+          items:
+            type: string
+          example: ["gojek", "grab", "shopeefood"]
+        ktp_photo_url:
+          type: string
+          format: uri
+        selfie_photo_url:
+          type: string
+          format: uri
+        vehicle_photo_url:
+          type: string
+          format: uri
+        status:
+          $ref: '#/components/schemas/DriverStatus'
+        rejection_reason:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    DriverStatusResponse:
+      type: object
+      properties:
+        status:
+          $ref: '#/components/schemas/DriverStatus'
+        rejection_reason:
+          type: string
+          nullable: true
+        submitted_at:
+          type: string
+          format: date-time
+        reviewed_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    # ── Admin ───────────────────────────────────────────────
+    AdminStats:
+      type: object
+      properties:
+        total_drivers:
+          type: integer
+          example: 1250
+        pending_drivers:
+          type: integer
+          example: 45
+        approved_drivers:
+          type: integer
+          example: 1180
+        rejected_drivers:
+          type: integer
+          example: 25
+        active_today:
+          type: integer
+          example: 890
+        total_zones:
+          type: integer
+          example: 12
+
+    RejectRequest:
+      type: object
+      required: [reason]
+      properties:
+        reason:
+          type: string
+          minLength: 10
+          example: "Foto KTP tidak jelas, silakan upload ulang"
+
+  parameters:
+    PageParam:
+      name: page
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+    LimitParam:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+    SearchParam:
+      name: search
+      in: query
+      schema:
+        type: string
+      description: Search by name, NIK, or phone
+    CityParam:
+      name: city
+      in: query
+      schema:
+        type: string
+      description: Filter by city
+
+paths:
+  # ══════════════════════════════════════════════════════════
+  #  Health
+  # ══════════════════════════════════════════════════════════
+  /health:
+    get:
+      tags: [Health]
+      summary: Health check
+      operationId: getHealth
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "ok"
+                  version:
+                    type: string
+                    example: "1.0.0"
+                  uptime:
+                    type: number
+                    example: 12345.67
+
+  # ══════════════════════════════════════════════════════════
+  #  Auth
+  # ══════════════════════════════════════════════════════════
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: Register phone number
+      description: |
+        Initiates registration by sending an OTP to the provided phone number.
+        If the phone is already registered, an OTP is still sent (for login).
+      operationId: authRegister
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+            example:
+              phone: "081234567890"
+      responses:
+        '200':
+          description: OTP sent successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "OTP sent to 081234567890"
+                  expires_in:
+                    type: integer
+                    description: OTP validity in seconds
+                    example: 300
+        '400':
+          description: Invalid phone number
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Invalid phone number format"
+        '429':
+          description: Too many OTP requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Too many requests. Please try again later."
+
+  /auth/verify-otp:
+    post:
+      tags: [Auth]
+      summary: Verify OTP and get tokens
+      description: |
+        Verifies the OTP for a phone number. Returns JWT access + refresh tokens.
+        If the user is new, an account is created automatically.
+      operationId: authVerifyOtp
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerifyOtpRequest'
+            example:
+              phone: "081234567890"
+              otp: "123456"
+      responses:
+        '200':
+          description: OTP verified, tokens issued
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/AuthTokens'
+                  - type: object
+                    properties:
+                      user:
+                        type: object
+                        properties:
+                          id:
+                            type: string
+                            format: uuid
+                          phone:
+                            type: string
+                          role:
+                            type: string
+                            enum: [driver, customer, admin]
+                          is_new:
+                            type: boolean
+              example:
+                access_token: "eyJhbGciOiJIUzI1NiIs..."
+                refresh_token: "dGhpcyBpcyBhIHJlZnJlc2g..."
+                expires_in: 3600
+                user:
+                  id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+                  phone: "081234567890"
+                  role: "driver"
+                  is_new: false
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Phone and OTP are required"
+        '401':
+          description: Invalid or expired OTP
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Invalid or expired OTP"
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Login with phone + OTP
+      description: |
+        Sends an OTP for an existing user, then verify via /auth/verify-otp.
+        This endpoint triggers the OTP; actual token issuance is via verify-otp.
+      operationId: authLogin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+            example:
+              phone: "081234567890"
+              otp: "654321"
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/AuthTokens'
+                  - type: object
+                    properties:
+                      user:
+                        type: object
+                        properties:
+                          id:
+                            type: string
+                            format: uuid
+                          phone:
+                            type: string
+                          role:
+                            type: string
+              example:
+                access_token: "eyJhbGciOiJIUzI1NiIs..."
+                refresh_token: "dGhpcyBpcyBhIHJlZnJlc2g..."
+                expires_in: 3600
+                user:
+                  id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+                  phone: "081234567890"
+                  role: "driver"
+        '400':
+          description: Missing fields
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Invalid phone or OTP"
+
+  /auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Refresh access token
+      operationId: authRefresh
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshRequest'
+            example:
+              refresh_token: "dGhpcyBpcyBhIHJlZnJlc2g..."
+      responses:
+        '200':
+          description: New tokens issued
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthTokens'
+        '401':
+          description: Invalid or expired refresh token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Invalid refresh token"
+
+  /auth/logout:
+    delete:
+      tags: [Auth]
+      summary: Logout (invalidate tokens)
+      description: Revokes the current access token and associated refresh token.
+      operationId: authLogout
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Logged out successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Logged out successfully"
+        '401':
+          description: Missing or invalid token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # ══════════════════════════════════════════════════════════
+  #  Driver
+  # ══════════════════════════════════════════════════════════
+  /driver/register:
+    post:
+      tags: [Driver]
+      summary: Register as a driver
+      description: |
+        Submits driver registration with personal info, vehicle details, bank account,
+        platform list, and photo documents. Status is set to `pending` for admin review.
+      operationId: driverRegister
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - name
+                - nik
+                - address
+                - city
+                - province
+                - vehicle_type
+                - vehicle_brand
+                - vehicle_model
+                - vehicle_year
+                - vehicle_plate
+                - vehicle_color
+                - bank_name
+                - bank_account
+                - bank_holder
+                - platforms
+                - ktp_photo
+                - selfie_photo
+                - vehicle_photo
+              properties:
+                name:
+                  type: string
+                  description: Full name as on KTP
+                  example: "Budi Santoso"
+                nik:
+                  type: string
+                  pattern: '^\d{16}$'
+                  description: 16-digit national ID number
+                  example: "3275011234567890"
+                address:
+                  type: string
+                  example: "Jl. Mampang Prapatan No. 10, RT 05/RW 02"
+                city:
+                  type: string
+                  example: "Jakarta Selatan"
+                province:
+                  type: string
+                  example: "DKI Jakarta"
+                vehicle_type:
+                  type: string
+                  enum: [motor, mobil]
+                vehicle_brand:
+                  type: string
+                  example: "Honda"
+                vehicle_model:
+                  type: string
+                  example: "Vario 160"
+                vehicle_year:
+                  type: integer
+                  minimum: 2000
+                  example: 2024
+                vehicle_plate:
+                  type: string
+                  example: "B 1234 KPD"
+                vehicle_color:
+                  type: string
+                  example: "Hitam"
+                bank_name:
+                  type: string
+                  example: "BCA"
+                bank_account:
+                  type: string
+                  example: "1234567890"
+                bank_holder:
+                  type: string
+                  example: "BUDI SANTOSO"
+                platforms:
+                  type: string
+                  description: JSON array of platform names
+                  example: '["gojek","grab","shopeefood"]'
+                ktp_photo:
+                  type: string
+                  format: binary
+                  description: KTP photo (JPEG/PNG, max 5MB)
+                selfie_photo:
+                  type: string
+                  format: binary
+                  description: Selfie holding KTP (JPEG/PNG, max 5MB)
+                vehicle_photo:
+                  type: string
+                  format: binary
+                  description: Vehicle photo (JPEG/PNG, max 5MB)
+      responses:
+        '201':
+          description: Registration submitted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Driver registration submitted successfully"
+                  driver_id:
+                    type: string
+                    format: uuid
+                  status:
+                    type: string
+                    example: "pending"
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Validation failed"
+                details:
+                  nik: "NIK must be exactly 16 digits"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: NIK already registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "A driver with this NIK already exists"
+
+  /driver/profile:
+    get:
+      tags: [Driver]
+      summary: Get driver profile
+      operationId: getDriverProfile
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Driver profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DriverProfile'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Driver profile not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Driver profile not found. Please complete registration."
+
+    put:
+      tags: [Driver]
+      summary: Update driver profile
+      description: Partial update — only provided fields are updated.
+      operationId: updateDriverProfile
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                address:
+                  type: string
+                city:
+                  type: string
+                province:
+                  type: string
+                vehicle_brand:
+                  type: string
+                vehicle_model:
+                  type: string
+                vehicle_year:
+                  type: integer
+                vehicle_plate:
+                  type: string
+                vehicle_color:
+                  type: string
+                bank_name:
+                  type: string
+                bank_account:
+                  type: string
+                bank_holder:
+                  type: string
+                platforms:
+                  type: array
+                  items:
+                    type: string
+            example:
+              vehicle_color: "Merah"
+              bank_name: "Mandiri"
+      responses:
+        '200':
+          description: Profile updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DriverProfile'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /driver/status:
+    get:
+      tags: [Driver]
+      summary: Get driver registration status
+      operationId: getDriverStatus
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Current status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DriverStatusResponse'
+              example:
+                status: "pending"
+                rejection_reason: null
+                submitted_at: "2026-07-15T10:00:00Z"
+                reviewed_at: null
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # ══════════════════════════════════════════════════════════
+  #  Admin
+  # ══════════════════════════════════════════════════════════
+  /admin/drivers/pending:
+    get:
+      tags: [Admin]
+      summary: List pending driver registrations
+      description: Returns paginated list of drivers awaiting verification.
+      operationId: adminListPendingDrivers
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - $ref: '#/components/parameters/SearchParam'
+        - $ref: '#/components/parameters/CityParam'
+      responses:
+        '200':
+          description: Paginated list of pending drivers
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/DriverProfile'
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden — admin role required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Admin access required"
+
+  /admin/drivers/{id}:
+    get:
+      tags: [Admin]
+      summary: Get driver details
+      description: Returns full driver profile for admin review.
+      operationId: adminGetDriver
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Driver details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DriverProfile'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Driver not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /admin/drivers/{id}/approve:
+    put:
+      tags: [Admin]
+      summary: Approve driver registration
+      operationId: adminApproveDriver
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Driver approved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Driver approved successfully"
+                  driver_id:
+                    type: string
+                    format: uuid
+                  status:
+                    type: string
+                    example: "approved"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Driver not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Driver already approved/rejected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Driver has already been reviewed"
+
+  /admin/drivers/{id}/reject:
+    put:
+      tags: [Admin]
+      summary: Reject driver registration
+      operationId: adminRejectDriver
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RejectRequest'
+            example:
+              reason: "Foto KTP tidak jelas, silakan upload ulang dengan pencahayaan yang baik"
+      responses:
+        '200':
+          description: Driver rejected
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Driver rejected"
+                  driver_id:
+                    type: string
+                    format: uuid
+                  status:
+                    type: string
+                    example: "rejected"
+        '400':
+          description: Missing reason
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Rejection reason is required"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Driver not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /admin/stats:
+    get:
+      tags: [Admin]
+      summary: Get platform statistics
+      operationId: adminGetStats
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Platform statistics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminStats'
+              example:
+                total_drivers: 1250
+                pending_drivers: 45
+                approved_drivers: 1180
+                rejected_drivers: 25
+                active_today: 890
+                total_zones: 12
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+security: []

@@ -1,0 +1,10 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'providers/auth_provider.dart';
+import 'phone_input_page.dart';
+import 'otp_page.dart';
+import 'personal_data_page.dart';
+import 'vehicle_data_page.dart';
+import 'platform_selection_page.dart';
+import 'bank_info_page.dart';
+import 'waiting_verification_page.dart';
