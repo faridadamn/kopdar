@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import '../../../config/theme.dart';
-import '../../../core/utils/formatters.dart';
-import '../../data/models/saving_model.dart';
-import 'progress_ring.dart';
 
-/// Card widget for a single savings goal in the list.
+import 'package:kopdar_driver/config/theme.dart';
+import 'package:kopdar_driver/core/utils/formatters.dart';
+import 'package:kopdar_driver/features/savings/data/models/saving_model.dart';
+import 'package:kopdar_driver/features/savings/presentation/widgets/progress_ring.dart';
+
 class SavingGoalCard extends StatelessWidget {
   final SavingModel goal;
   final VoidCallback? onTap;
@@ -39,7 +39,7 @@ class SavingGoalCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.04),
+              color: Colors.black.withValues(alpha: 0.04),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -49,7 +49,6 @@ class SavingGoalCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                // Icon
                 Container(
                   width: 48,
                   height: 48,
@@ -64,8 +63,6 @@ class SavingGoalCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 12),
-
-                // Name + status badge
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -87,7 +84,7 @@ class SavingGoalCard extends StatelessWidget {
                               vertical: 2,
                             ),
                             decoration: BoxDecoration(
-                              color: _statusColor.withOpacity(0.1),
+                              color: _statusColor.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(
@@ -125,8 +122,6 @@ class SavingGoalCard extends StatelessWidget {
                     ],
                   ),
                 ),
-
-                // Progress ring
                 ProgressRing(
                   progress: goal.progress,
                   size: 52,
@@ -135,8 +130,6 @@ class SavingGoalCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 14),
-
-            // Progress bar
             ClipRRect(
               borderRadius: BorderRadius.circular(4),
               child: LinearProgressIndicator(
@@ -147,21 +140,23 @@ class SavingGoalCard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 10),
-
-            // Stats row
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  '${Formatters.currency(goal.currentAmount.toInt())} / ${Formatters.currency(goal.targetAmount.toInt())}',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: AppColors.gray600,
+                Expanded(
+                  child: Text(
+                    '${Formatters.currency(goal.currentAmount.toInt())} / ${Formatters.currency(goal.targetAmount.toInt())}',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppColors.gray600,
+                    ),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
+                const SizedBox(width: 8),
                 Text(
                   '${goal.progressPercent}% · ${goal.estimatedDays} hari lagi',
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                     color: AppColors.gray700,
