@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../config/theme.dart';
-import '../../../core/utils/formatters.dart';
-import '../providers/insurance_provider.dart';
-import '../widgets/product_card.dart';
+import 'package:provider/provider.dart';
+
+import 'package:kopdar_driver/config/theme.dart';
+import 'package:kopdar_driver/features/insurance/presentation/providers/insurance_provider.dart';
+import 'package:kopdar_driver/features/insurance/presentation/widgets/product_card.dart';
 
 /// Insurance product catalog page.
 class InsuranceCatalogPage extends StatefulWidget {
@@ -19,6 +19,7 @@ class _InsuranceCatalogPageState extends State<InsuranceCatalogPage> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
       context.read<InsuranceProvider>().fetchProducts();
     });
   }
@@ -61,11 +62,8 @@ class _InsuranceCatalogPageState extends State<InsuranceCatalogPage> {
             child: ListView(
               padding: const EdgeInsets.all(16),
               children: [
-                // ── Info banner ──
-                _InfoBanner(),
+                const _InfoBanner(),
                 const SizedBox(height: 20),
-
-                // ── Section title ──
                 Text(
                   'Produk Asuransi',
                   style: Theme.of(context).textTheme.titleLarge,
@@ -78,23 +76,17 @@ class _InsuranceCatalogPageState extends State<InsuranceCatalogPage> {
                       ),
                 ),
                 const SizedBox(height: 16),
-
-                // ── Product list ──
                 ...provider.products.map(
                   (product) => Padding(
                     padding: const EdgeInsets.only(bottom: 12),
                     child: ProductCard(
                       product: product,
-                      onTap: () =>
-                          context.push('/insurance/${product.id}'),
+                      onTap: () => context.push('/insurance/${product.id}'),
                     ),
                   ),
                 ),
                 const SizedBox(height: 24),
-
-                // ── My Insurance button ──
-                if (provider.policies.isNotEmpty ||
-                    provider.claims.isNotEmpty)
+                if (provider.policies.isNotEmpty || provider.claims.isNotEmpty)
                   OutlinedButton.icon(
                     onPressed: () => context.push('/insurance/my'),
                     icon: const Icon(Icons.folder_open_rounded),
@@ -110,8 +102,9 @@ class _InsuranceCatalogPageState extends State<InsuranceCatalogPage> {
   }
 }
 
-/// Blue gradient info banner with member pricing highlight.
 class _InfoBanner extends StatelessWidget {
+  const _InfoBanner();
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -126,7 +119,7 @@ class _InfoBanner extends StatelessWidget {
         borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
-            color: AppColors.blue.withOpacity(0.3),
+            color: AppColors.blue.withValues(alpha: 0.3),
             blurRadius: 16,
             offset: const Offset(0, 6),
           ),
@@ -151,16 +144,18 @@ class _InfoBanner extends StatelessWidget {
                   'Lebih murah 30%! Nikmati perlindungan terjangkau untukmu dan keluarga.',
                   style: TextStyle(
                     fontSize: 12,
-                    color: Colors.white.withOpacity(0.85),
+                    color: Colors.white.withValues(alpha: 0.85),
                     height: 1.4,
                   ),
                 ),
                 const SizedBox(height: 10),
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
+                    color: Colors.white.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: const Text(
