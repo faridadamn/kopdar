@@ -35,15 +35,11 @@ jobs:
         run: go mod tidy
 
       - name: Vet
-        id: vet
-        continue-on-error: true
         run: |
           set -o pipefail
           go vet ./... 2>&1 | tee vet-report.txt
 
       - name: Unit and race tests
-        id: tests
-        continue-on-error: true
         run: |
           set -o pipefail
           go test -race -count=1 ./... 2>&1 | tee test-report.txt
@@ -57,12 +53,6 @@ jobs:
             backend/go.sum
             backend/vet-report.txt
             backend/test-report.txt
-
-      - name: Enforce backend result
-        if: always()
-        run: |
-          test "${{ steps.vet.outcome }}" = "success"
-          test "${{ steps.tests.outcome }}" = "success"
 
   flutter:
     name: Flutter checks
@@ -84,15 +74,11 @@ jobs:
         run: flutter pub get
 
       - name: Analyze
-        id: analyze
-        continue-on-error: true
         run: |
           set -o pipefail
           flutter analyze --fatal-infos 2>&1 | tee analyze-report.txt
 
       - name: Test
-        id: tests
-        continue-on-error: true
         run: |
           set -o pipefail
           flutter test --coverage 2>&1 | tee test-report.txt
@@ -106,9 +92,3 @@ jobs:
             frontend/kopdar_driver/pubspec.lock
             frontend/kopdar_driver/analyze-report.txt
             frontend/kopdar_driver/test-report.txt
-
-      - name: Enforce Flutter result
-        if: always()
-        run: |
-          test "${{ steps.analyze.outcome }}" = "success"
-          test "${{ steps.tests.outcome }}" = "success"
