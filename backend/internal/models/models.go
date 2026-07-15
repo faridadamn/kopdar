@@ -6,21 +6,18 @@ import (
 	"github.com/google/uuid"
 )
 
-// User roles
 const (
 	RoleDriver     = "driver"
 	RoleAdmin      = "admin"
 	RoleSuperAdmin = "superadmin"
 )
 
-// User statuses
 const (
 	StatusActive    = "active"
 	StatusSuspended = "suspended"
 	StatusDeleted   = "deleted"
 )
 
-// Driver verification statuses
 const (
 	VerificationPending     = "pending"
 	VerificationApproved    = "approved"
@@ -29,49 +26,55 @@ const (
 )
 
 type User struct {
-	ID        uuid.UUID  `json:"id" db:"id"`
-	Phone     string     `json:"phone" db:"phone"`
-	FullName  *string    `json:"full_name,omitempty" db:"full_name"`
-	Role      string     `json:"role" db:"role"`
-	Status    string     `json:"status" db:"status"`
-	AvatarURL *string    `json:"avatar_url,omitempty" db:"avatar_url"`
-	CreatedAt time.Time  `json:"created_at" db:"created_at"`
-	UpdatedAt time.Time  `json:"updated_at" db:"updated_at"`
+	ID        uuid.UUID `json:"id" db:"id"`
+	Phone     string `json:"phone" db:"phone"`
+	FullName  *string `json:"full_name,omitempty" db:"full_name"`
+	Role      string `json:"role" db:"role"`
+	Status    string `json:"status" db:"status"`
+	AvatarURL *string `json:"avatar_url,omitempty" db:"avatar_url"`
+	CreatedAt time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt time.Time `json:"updated_at" db:"updated_at"`
 }
 
 type RefreshToken struct {
 	ID        uuid.UUID `json:"id" db:"id"`
 	UserID    uuid.UUID `json:"user_id" db:"user_id"`
-	TokenHash string    `json:"-" db:"token_hash"`
+	TokenHash string `json:"-" db:"token_hash"`
 	ExpiresAt time.Time `json:"expires_at" db:"expires_at"`
-	Revoked   bool      `json:"revoked" db:"revoked"`
+	Revoked   bool `json:"revoked" db:"revoked"`
 	CreatedAt time.Time `json:"created_at" db:"created_at"`
 }
 
 type Driver struct {
-	ID                   uuid.UUID  `json:"id" db:"id"`
-	UserID               uuid.UUID  `json:"user_id" db:"user_id"`
-	NIK                  *string    `json:"nik,omitempty" db:"nik"`
-	DateOfBirth          *time.Time `json:"date_of_birth,omitempty" db:"date_of_birth"`
-	Address              *string    `json:"address,omitempty" db:"address"`
-	City                 *string    `json:"city,omitempty" db:"city"`
-	Province             *string    `json:"province,omitempty" db:"province"`
-	PostalCode           *string    `json:"postal_code,omitempty" db:"postal_code"`
-	KTPPhotoURL          *string    `json:"ktp_photo_url,omitempty" db:"ktp_photo_url"`
-	SelfiePhotoURL       *string    `json:"selfie_photo_url,omitempty" db:"selfie_photo_url"`
-	VehicleType          *string    `json:"vehicle_type,omitempty" db:"vehicle_type"`
-	VehiclePlate         *string    `json:"vehicle_plate,omitempty" db:"vehicle_plate"`
-	VehicleYear          *int       `json:"vehicle_year,omitempty" db:"vehicle_year"`
-	STNKPhotoURL         *string    `json:"stnk_photo_url,omitempty" db:"stnk_photo_url"`
-	VerificationStatus   string     `json:"verification_status" db:"verification_status"`
-	RejectionReason      *string    `json:"rejection_reason,omitempty" db:"rejection_reason"`
-	VerifiedAt           *time.Time `json:"verified_at,omitempty" db:"verified_at"`
-	VerifiedBy           *uuid.UUID `json:"verified_by,omitempty" db:"verified_by"`
-	ReferralCode         *string    `json:"referral_code,omitempty" db:"referral_code"`
-	EmergencyContactName *string    `json:"emergency_contact_name,omitempty" db:"emergency_contact_name"`
-	EmergencyContactPhone *string   `json:"emergency_contact_phone,omitempty" db:"emergency_contact_phone"`
-	CreatedAt            time.Time  `json:"created_at" db:"created_at"`
-	UpdatedAt            time.Time  `json:"updated_at" db:"updated_at"`
+	ID                    uuid.UUID  `json:"id" db:"id"`
+	UserID                uuid.UUID  `json:"user_id" db:"user_id"`
+	NIK                   *string    `json:"nik,omitempty" db:"nik"`
+	DateOfBirth           *time.Time `json:"date_of_birth,omitempty" db:"date_of_birth"`
+	Address               *string    `json:"address,omitempty" db:"address"`
+	City                  *string    `json:"city,omitempty" db:"city"`
+	Province              *string    `json:"province,omitempty" db:"province"`
+	PostalCode            *string    `json:"postal_code,omitempty" db:"postal_code"`
+	KTPPhotoURL           *string    `json:"ktp_photo_url,omitempty" db:"ktp_photo_url"`
+	SelfiePhotoURL        *string    `json:"selfie_photo_url,omitempty" db:"selfie_photo_url"`
+	VehicleType           *string    `json:"vehicle_type,omitempty" db:"vehicle_type"`
+	VehicleBrand          *string    `json:"vehicle_brand,omitempty" db:"vehicle_brand"`
+	VehicleModel          *string    `json:"vehicle_model,omitempty" db:"vehicle_model"`
+	VehicleColor          *string    `json:"vehicle_color,omitempty" db:"vehicle_color"`
+	VehiclePlate          *string    `json:"vehicle_plate,omitempty" db:"vehicle_plate"`
+	VehicleYear           *int       `json:"vehicle_year,omitempty" db:"vehicle_year"`
+	STNKPhotoURL          *string    `json:"stnk_photo_url,omitempty" db:"stnk_photo_url"`
+	BankName              *string    `json:"bank_name,omitempty" db:"bank_name"`
+	BankAccountNumber     *string    `json:"bank_account_number,omitempty" db:"bank_account_number"`
+	BankAccountName       *string    `json:"bank_account_name,omitempty" db:"bank_account_name"`
+	VerificationStatus    string     `json:"verification_status" db:"verification_status"`
+	RejectionReason       *string    `json:"rejection_reason,omitempty" db:"rejection_reason"`
+	VerifiedAt            *time.Time `json:"verified_at,omitempty" db:"verified_at"`
+	VerifiedBy            *uuid.UUID `json:"verified_by,omitempty" db:"verified_by"`
+	ReferralCode          *string    `json:"referral_code,omitempty" db:"referral_code"`
+	EmergencyContactName  *string    `json:"emergency_contact_name,omitempty" db:"emergency_contact_name"`
+	EmergencyContactPhone *string    `json:"emergency_contact_phone,omitempty" db:"emergency_contact_phone"`
+	CreatedAt             time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt             time.Time  `json:"updated_at" db:"updated_at"`
 }
 
 type DriverPlatform struct {
@@ -83,8 +86,6 @@ type DriverPlatform struct {
 	JoinedAt         *time.Time `json:"joined_at,omitempty" db:"joined_at"`
 	CreatedAt        time.Time  `json:"created_at" db:"created_at"`
 }
-
-// Request/Response DTOs
 
 type RegisterRequest struct {
 	Phone string `json:"phone" binding:"required"`
@@ -111,19 +112,25 @@ type TokenResponse struct {
 }
 
 type DriverRegisterRequest struct {
-	FullName             string   `form:"full_name" binding:"required"`
-	NIK                  string   `form:"nik" binding:"required"`
-	DateOfBirth          string   `form:"date_of_birth" binding:"required"`
-	Address              string   `form:"address" binding:"required"`
-	City                 string   `form:"city" binding:"required"`
-	Province             string   `form:"province" binding:"required"`
-	PostalCode           string   `form:"postal_code"`
-	VehicleType          string   `form:"vehicle_type" binding:"required"`
-	VehiclePlate         string   `form:"vehicle_plate" binding:"required"`
-	VehicleYear          int      `form:"vehicle_year"`
-	EmergencyContactName string   `form:"emergency_contact_name"`
-	EmergencyContactPhone string  `form:"emergency_contact_phone"`
-	Platforms            string   `form:"platforms"` // JSON array of platform names
+	FullName              string `form:"full_name" binding:"required"`
+	NIK                   string `form:"nik" binding:"required,len=16"`
+	DateOfBirth           string `form:"date_of_birth" binding:"required"`
+	Address               string `form:"address" binding:"required"`
+	City                  string `form:"city" binding:"required"`
+	Province              string `form:"province" binding:"required"`
+	PostalCode            string `form:"postal_code"`
+	VehicleType           string `form:"vehicle_type" binding:"required"`
+	VehicleBrand          string `form:"vehicle_brand" binding:"required"`
+	VehicleModel          string `form:"vehicle_model" binding:"required"`
+	VehicleColor          string `form:"vehicle_color" binding:"required"`
+	VehiclePlate          string `form:"vehicle_plate" binding:"required"`
+	VehicleYear           int `form:"vehicle_year" binding:"required,min=1990,max=2100"`
+	BankName              string `form:"bank_name" binding:"required"`
+	BankAccountNumber     string `form:"bank_account_number" binding:"required"`
+	BankAccountName       string `form:"bank_account_name" binding:"required"`
+	EmergencyContactName  string `form:"emergency_contact_name" binding:"required"`
+	EmergencyContactPhone string `form:"emergency_contact_phone" binding:"required"`
+	Platforms             string `form:"platforms" binding:"required"`
 }
 
 type DriverProfileUpdate struct {
@@ -133,24 +140,30 @@ type DriverProfileUpdate struct {
 	Province              *string `json:"province"`
 	PostalCode            *string `json:"postal_code"`
 	VehicleType           *string `json:"vehicle_type"`
+	VehicleBrand          *string `json:"vehicle_brand"`
+	VehicleModel          *string `json:"vehicle_model"`
+	VehicleColor          *string `json:"vehicle_color"`
 	VehiclePlate          *string `json:"vehicle_plate"`
-	VehicleYear           *int    `json:"vehicle_year"`
+	VehicleYear           *int `json:"vehicle_year"`
+	BankName              *string `json:"bank_name"`
+	BankAccountNumber     *string `json:"bank_account_number"`
+	BankAccountName       *string `json:"bank_account_name"`
 	EmergencyContactName  *string `json:"emergency_contact_name"`
 	EmergencyContactPhone *string `json:"emergency_contact_phone"`
 }
 
 type PaginationQuery struct {
-	Page     int    `form:"page,default=1"`
-	PageSize int    `form:"page_size,default=20"`
+	Page     int `form:"page,default=1"`
+	PageSize int `form:"page_size,default=20"`
 	Search   string `form:"search"`
 }
 
 type PaginatedResponse struct {
 	Data       interface{} `json:"data"`
-	Page       int         `json:"page"`
-	PageSize   int         `json:"page_size"`
-	TotalItems int64       `json:"total_items"`
-	TotalPages int         `json:"total_pages"`
+	Page       int `json:"page"`
+	PageSize   int `json:"page_size"`
+	TotalItems int64 `json:"total_items"`
+	TotalPages int `json:"total_pages"`
 }
 
 type AdminStats struct {
@@ -163,12 +176,12 @@ type AdminStats struct {
 }
 
 type AdminLog struct {
-	ID         uuid.UUID   `json:"id"`
-	AdminID    uuid.UUID   `json:"admin_id"`
-	Action     string      `json:"action"`
-	TargetType *string     `json:"target_type,omitempty"`
-	TargetID   *uuid.UUID  `json:"target_id,omitempty"`
+	ID         uuid.UUID `json:"id"`
+	AdminID    uuid.UUID `json:"admin_id"`
+	Action     string `json:"action"`
+	TargetType *string `json:"target_type,omitempty"`
+	TargetID   *uuid.UUID `json:"target_id,omitempty"`
 	Details    interface{} `json:"details,omitempty"`
-	IPAddress  *string     `json:"ip_address,omitempty"`
-	CreatedAt  time.Time   `json:"created_at"`
+	IPAddress  *string `json:"ip_address,omitempty"`
+	CreatedAt  time.Time `json:"created_at"`
 }

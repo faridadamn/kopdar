@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import '../../../../config/theme.dart';
-import '../../../core/utils/formatters.dart';
-import '../../data/models/profile_model.dart';
+
+import 'package:kopdar_driver/config/theme.dart';
+import 'package:kopdar_driver/core/utils/formatters.dart';
+import 'package:kopdar_driver/features/profile/data/models/profile_model.dart';
 
 /// Referral entry card: name, status, bonus, date.
 class ReferralCard extends StatelessWidget {
@@ -20,7 +21,6 @@ class ReferralCard extends StatelessWidget {
       ),
       child: Row(
         children: [
-          // Avatar circle
           Container(
             width: 40,
             height: 40,
@@ -43,14 +43,14 @@ class ReferralCard extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 12),
-
-          // Info
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   entry.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     fontWeight: FontWeight.w600,
                     fontSize: 14,
@@ -68,13 +68,14 @@ class ReferralCard extends StatelessWidget {
               ],
             ),
           ),
-
-          // Bonus + status
+          const SizedBox(width: 8),
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                entry.bonus > 0 ? '+${Formatters.number(entry.bonus)} poin' : '-',
+                entry.bonus > 0
+                    ? '+${Formatters.number(entry.bonus)} poin'
+                    : '-',
                 style: TextStyle(
                   fontWeight: FontWeight.w700,
                   fontSize: 13,
@@ -85,12 +86,11 @@ class ReferralCard extends StatelessWidget {
               ),
               const SizedBox(height: 2),
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
                   color: entry.isCompleted
-                      ? AppColors.success.withOpacity(0.1)
-                      : AppColors.warning.withOpacity(0.1),
+                      ? AppColors.success.withValues(alpha: 0.1)
+                      : AppColors.warning.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import '../data/models/insurance_model.dart';
-import '../data/datasources/insurance_remote_ds.dart';
+
+import 'package:kopdar_driver/features/insurance/data/datasources/insurance_remote_ds.dart';
+import 'package:kopdar_driver/features/insurance/data/models/insurance_model.dart';
 
 enum InsuranceStatus { initial, loading, loaded, error }
 
@@ -10,7 +11,6 @@ class InsuranceProvider extends ChangeNotifier {
   InsuranceProvider({InsuranceRemoteDataSource? dataSource})
       : _dataSource = dataSource ?? InsuranceRemoteDataSource();
 
-  // ── State ──
   InsuranceStatus _status = InsuranceStatus.initial;
   InsuranceStatus _policiesStatus = InsuranceStatus.initial;
   InsuranceStatus _claimsStatus = InsuranceStatus.initial;
@@ -21,7 +21,6 @@ class InsuranceProvider extends ChangeNotifier {
   String? _errorMessage;
   bool _isSubmitting = false;
 
-  // ── Getters ──
   InsuranceStatus get status => _status;
   InsuranceStatus get policiesStatus => _policiesStatus;
   InsuranceStatus get claimsStatus => _claimsStatus;
@@ -33,19 +32,15 @@ class InsuranceProvider extends ChangeNotifier {
   bool get isLoading => _status == InsuranceStatus.loading;
   bool get isSubmitting => _isSubmitting;
 
-  // ── Derived ──
   List<InsurancePolicy> get activePolicies =>
-      _policies.where((p) => p.isActive).toList();
+      _policies.where((policy) => policy.isActive).toList();
 
   List<InsurancePolicy> get expiringPolicies =>
-      _policies.where((p) => p.isExpiringSoon).toList();
+      _policies.where((policy) => policy.isExpiringSoon).toList();
 
   List<InsuranceClaim> get pendingClaims =>
-      _claims.where((c) => c.isPending).toList();
+      _claims.where((claim) => claim.isPending).toList();
 
-  // ── Actions ──
-
-  /// Fetch all insurance products.
   Future<void> fetchProducts() async {
     _status = InsuranceStatus.loading;
     _errorMessage = null;
@@ -54,37 +49,31 @@ class InsuranceProvider extends ChangeNotifier {
     try {
       _products = await _dataSource.listProducts();
       _status = InsuranceStatus.loaded;
-      notifyListeners();
-    } catch (e) {
+    } catch (_) {
       _status = InsuranceStatus.error;
       _errorMessage = 'Gagal memuat produk asuransi. Coba lagi.';
-      notifyListeners();
     }
+    notifyListeners();
   }
 
-  /// Fetch detail of a single product.
   Future<void> fetchProductDetail(String id) async {
     _status = InsuranceStatus.loading;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      _selectedProduct = await _dataSource.getProduct(id);
+      final product = await _dataSource.getProduct(id);
+      _selectedProduct = product;
       _status = InsuranceStatus.loaded;
-      // Update in list if present
-      final index = _products.indexWhere((p) => p.id == id);
-      if (index != -1) {
-        _products[index] = _selectedProduct!;
-      }
-      notifyListeners();
-    } catch (e) {
+      final index = _products.indexWhere((item) => item.id == id);
+      if (index != -1) _products[index] = product;
+    } catch (_) {
       _status = InsuranceStatus.error;
       _errorMessage = 'Gagal memuat detail produk.';
-      notifyListeners();
     }
+    notifyListeners();
   }
 
-  /// Fetch all policies.
   Future<void> fetchPolicies() async {
     _policiesStatus = InsuranceStatus.loading;
     notifyListeners();
@@ -92,15 +81,13 @@ class InsuranceProvider extends ChangeNotifier {
     try {
       _policies = await _dataSource.listPolicies();
       _policiesStatus = InsuranceStatus.loaded;
-      notifyListeners();
-    } catch (e) {
+    } catch (_) {
       _policiesStatus = InsuranceStatus.error;
       _errorMessage = 'Gagal memuat polis. Coba lagi.';
-      notifyListeners();
     }
+    notifyListeners();
   }
 
-  /// Fetch all claims.
   Future<void> fetchClaims() async {
     _claimsStatus = InsuranceStatus.loading;
     notifyListeners();
@@ -108,20 +95,17 @@ class InsuranceProvider extends ChangeNotifier {
     try {
       _claims = await _dataSource.listClaims();
       _claimsStatus = InsuranceStatus.loaded;
-      notifyListeners();
-    } catch (e) {
+    } catch (_) {
       _claimsStatus = InsuranceStatus.error;
       _errorMessage = 'Gagal memuat klaim. Coba lagi.';
-      notifyListeners();
     }
+    notifyListeners();
   }
 
-  /// Fetch both policies and claims (for MyInsurance page).
   Future<void> fetchMyInsurance() async {
     await Future.wait([fetchPolicies(), fetchClaims()]);
   }
 
-  /// Purchase a policy.
   Future<bool> purchasePolicy({
     required String productId,
     required Map<String, dynamic> additionalData,
@@ -138,34 +122,33 @@ class InsuranceProvider extends ChangeNotifier {
         paymentMethod: paymentMethod,
       );
       _policies.insert(0, policy);
-      // Mark product as having active policy
-      final index = _products.indexWhere((p) => p.id == productId);
+
+      final index = _products.indexWhere((item) => item.id == productId);
       if (index != -1) {
+        final product = _products[index];
         _products[index] = InsuranceProduct(
-          id: _products[index].id,
-          name: _products[index].name,
-          description: _products[index].description,
-          productType: _products[index].productType,
-          icon: _products[index].icon,
-          coverageDetails: _products[index].coverageDetails,
-          priceMember: _products[index].priceMember,
-          priceNonMember: _products[index].priceNonMember,
-          partnerName: _products[index].partnerName,
+          id: product.id,
+          name: product.name,
+          description: product.description,
+          productType: product.productType,
+          icon: product.icon,
+          coverageDetails: product.coverageDetails,
+          priceMember: product.priceMember,
+          priceNonMember: product.priceNonMember,
+          partnerName: product.partnerName,
           hasActivePolicy: true,
         );
       }
-      _isSubmitting = false;
-      notifyListeners();
       return true;
-    } catch (e) {
-      _isSubmitting = false;
+    } catch (_) {
       _errorMessage = 'Gagal membeli polis. Coba lagi.';
-      notifyListeners();
       return false;
+    } finally {
+      _isSubmitting = false;
+      notifyListeners();
     }
   }
 
-  /// Renew a policy.
   Future<bool> renewPolicy(String policyId) async {
     _isSubmitting = true;
     _errorMessage = null;
@@ -173,22 +156,18 @@ class InsuranceProvider extends ChangeNotifier {
 
     try {
       final renewed = await _dataSource.renewPolicy(policyId);
-      final index = _policies.indexWhere((p) => p.id == policyId);
-      if (index != -1) {
-        _policies[index] = renewed;
-      }
-      _isSubmitting = false;
-      notifyListeners();
+      final index = _policies.indexWhere((item) => item.id == policyId);
+      if (index != -1) _policies[index] = renewed;
       return true;
-    } catch (e) {
-      _isSubmitting = false;
+    } catch (_) {
       _errorMessage = 'Gagal memperpanjang polis. Coba lagi.';
-      notifyListeners();
       return false;
+    } finally {
+      _isSubmitting = false;
+      notifyListeners();
     }
   }
 
-  /// File a claim.
   Future<bool> fileClaim({
     required String policyId,
     required String claimType,
@@ -207,14 +186,13 @@ class InsuranceProvider extends ChangeNotifier {
         evidenceUrls: evidenceUrls,
       );
       _claims.insert(0, claim);
-      _isSubmitting = false;
-      notifyListeners();
       return true;
-    } catch (e) {
-      _isSubmitting = false;
+    } catch (_) {
       _errorMessage = 'Gagal mengajukan klaim. Coba lagi.';
-      notifyListeners();
       return false;
+    } finally {
+      _isSubmitting = false;
+      notifyListeners();
     }
   }
 }

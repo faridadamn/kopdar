@@ -1,11 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:kopdar_driver/config/constants.dart';
+import 'package:kopdar_driver/config/theme.dart';
+import 'package:kopdar_driver/features/auth/presentation/providers/auth_provider.dart';
 import 'package:pin_code_fields/pin_code_fields.dart';
-import 'package:flutter_animate/flutter_animate.dart';
-import '../../../config/theme.dart';
-import '../../../config/constants.dart';
-import '../../../core/utils/formatters.dart';
-import '../../common/widgets/loading_button.dart';
+import 'package:provider/provider.dart';
 
 class OtpPage extends StatefulWidget {
   final String phoneNumber;
@@ -18,104 +19,98 @@ class OtpPage extends StatefulWidget {
 
 class _OtpPageState extends State<OtpPage> {
   final _otpController = TextEditingController();
-  bool _isLoading = false;
-  bool _hasError = false;
-  String _errorMessage = '';
+  Timer? _timer;
   int _resendSeconds = AppConstants.otpResendSeconds;
-  bool _canResend = false;
-  int _attempts = 0;
+  bool _isSubmitting = false;
+  bool _isResending = false;
+  String? _errorMessage;
 
   @override
   void initState() {
     super.initState();
-    _startResendTimer();
+    _startTimer();
   }
 
   @override
   void dispose() {
+    _timer?.cancel();
     _otpController.dispose();
     super.dispose();
   }
 
-  void _startResendTimer() {
-    setState(() {
-      _resendSeconds = AppConstants.otpResendSeconds;
-      _canResend = false;
-    });
-
-    Future.doWhile(() async {
-      await Future.delayed(const Duration(seconds: 1));
-      if (!mounted) return false;
-
-      setState(() {
-        _resendSeconds--;
-      });
-
-      if (_resendSeconds <= 0) {
-        setState(() {
-          _canResend = true;
-        });
-        return false;
+  void _startTimer() {
+    _timer?.cancel();
+    setState(() => _resendSeconds = AppConstants.otpResendSeconds);
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
       }
-      return true;
+      if (_resendSeconds <= 1) {
+        timer.cancel();
+        setState(() => _resendSeconds = 0);
+      } else {
+        setState(() => _resendSeconds--);
+      }
     });
   }
 
   Future<void> _verifyOtp(String otp) async {
-    if (otp.length != AppConstants.otpLength) return;
+    if (_isSubmitting || otp.length != AppConstants.otpLength) return;
 
     setState(() {
-      _isLoading = true;
-      _hasError = false;
-      _errorMessage = '';
+      _isSubmitting = true;
+      _errorMessage = null;
     });
 
-    // Simulate API call
-    await Future.delayed(const Duration(seconds: 1));
-
+    final auth = context.read<AuthProvider>();
+    final success = await auth.verifyOtp(widget.phoneNumber, otp);
     if (!mounted) return;
 
-    setState(() => _isLoading = false);
+    setState(() {
+      _isSubmitting = false;
+      _errorMessage = success ? null : auth.errorMessage;
+    });
 
-    // Simulate success (in real app, check API response)
-    _attempts++;
-
-    if (_attempts <= AppConstants.maxOtpAttempts) {
-      // Success - navigate to personal data
+    if (success) {
       context.go('/register/personal');
     } else {
-      setState(() {
-        _hasError = true;
-        _errorMessage = 'Terlalu banyak percobaan. Coba lagi dalam ${AppConstants.lockoutMinutes} menit.';
-      });
+      _otpController.clear();
     }
   }
 
   Future<void> _resendOtp() async {
-    if (!_canResend) return;
+    if (_resendSeconds > 0 || _isResending) return;
 
     setState(() {
-      _canResend = false;
-      _resendSeconds = AppConstants.otpResendSeconds;
+      _isResending = true;
+      _errorMessage = null;
     });
 
-    // Simulate resend
-    await Future.delayed(const Duration(milliseconds: 500));
-
+    final auth = context.read<AuthProvider>();
+    final success = await auth.sendOtp(widget.phoneNumber);
     if (!mounted) return;
 
-    _startResendTimer();
+    setState(() {
+      _isResending = false;
+      _errorMessage = success ? null : auth.errorMessage;
+    });
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Kode OTP baru sudah dikirim!'),
-        backgroundColor: AppColors.primary,
-      ),
-    );
+    if (success) {
+      _startTimer();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Kode OTP baru sudah dikirim.'),
+          backgroundColor: AppColors.primary,
+        ),
+      );
+    }
   }
 
   String get _formattedPhone {
-    return Formatters.phone(widget.phoneNumber);
+    final digits = widget.phoneNumber.replaceAll(RegExp(r'\D'), '');
+    if (digits.length < 8) return widget.phoneNumber;
+    return '${digits.substring(0, 4)}-${digits.substring(4, 8)}-${digits.substring(8)}';
   }
 
   @override
@@ -123,95 +118,47 @@ class _OtpPageState extends State<OtpPage> {
     return Scaffold(
       backgroundColor: AppColors.white,
       appBar: AppBar(
-        backgroundColor: AppColors.white,
         leading: IconButton(
-          onPressed: () => context.pop(),
+          onPressed: _isSubmitting ? null : () => context.pop(),
           icon: const Icon(Icons.arrow_back_ios_new),
-          style: IconButton.styleFrom(
-            backgroundColor: AppColors.gray100,
-            padding: const EdgeInsets.all(12),
-          ),
         ),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const SizedBox(height: 24),
-
-              // Lock icon
-              Center(
-                child: Container(
-                  width: 80,
-                  height: 80,
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryBg,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: const Center(
-                    child: Text(
-                      '🔒',
-                      style: TextStyle(fontSize: 40),
-                    ),
-                  ),
-                ),
-              )
-                  .animate()
-                  .fadeIn(duration: 400.ms)
-                  .scale(begin: const Offset(0.8, 0.8), duration: 400.ms),
-
-              const SizedBox(height: 24),
-
-              // Title
-              Center(
-                child: Text(
-                  'Kode OTP',
-                  style: Theme.of(context).textTheme.headlineMedium,
-                ),
-              )
-                  .animate()
-                  .fadeIn(duration: 400.ms, delay: 100.ms),
-
-              const SizedBox(height: 8),
-
-              Center(
-                child: Text(
-                  'Kami mengirim kode ke $_formattedPhone',
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        color: AppColors.gray600,
-                      ),
-                ),
-              )
-                  .animate()
-                  .fadeIn(duration: 400.ms, delay: 200.ms),
-
-              const SizedBox(height: 8),
-
-              Center(
-                child: GestureDetector(
-                  onTap: () => context.pop(),
-                  child: Text(
-                    'Ubah nomor',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.w600,
-                        ),
-                  ),
-                ),
+              const CircleAvatar(
+                radius: 38,
+                backgroundColor: AppColors.primaryBg,
+                child: Icon(Icons.lock_outline, size: 38, color: AppColors.primary),
               ),
-
-              const SizedBox(height: 32),
-
-              // OTP input
+              const SizedBox(height: 24),
+              Text(
+                'Masukkan kode OTP',
+                style: Theme.of(context).textTheme.headlineMedium,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Kode dikirim ke $_formattedPhone',
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      color: AppColors.gray600,
+                    ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 28),
               PinCodeTextField(
                 appContext: context,
                 length: AppConstants.otpLength,
                 controller: _otpController,
                 keyboardType: TextInputType.number,
+                enabled: !_isSubmitting,
                 animationType: AnimationType.fade,
+                animationDuration: const Duration(milliseconds: 200),
+                enableActiveFill: true,
+                backgroundColor: Colors.transparent,
                 pinTheme: PinTheme(
                   shape: PinCodeFieldShape.box,
                   borderRadius: BorderRadius.circular(12),
@@ -225,26 +172,14 @@ class _OtpPageState extends State<OtpPage> {
                   selectedColor: AppColors.primary,
                   errorBorderColor: AppColors.danger,
                 ),
-                animationDuration: const Duration(milliseconds: 300),
-                backgroundColor: Colors.transparent,
-                enableActiveFill: true,
-                errorAnimationController: null,
                 onCompleted: _verifyOtp,
-                onChanged: (value) {
-                  if (_hasError) {
-                    setState(() {
-                      _hasError = false;
-                      _errorMessage = '';
-                    });
+                onChanged: (_) {
+                  if (_errorMessage != null) {
+                    setState(() => _errorMessage = null);
                   }
                 },
-              )
-                  .animate()
-                  .fadeIn(duration: 400.ms, delay: 300.ms)
-                  .slideY(begin: 0.2, end: 0, duration: 400.ms, delay: 300.ms),
-
-              // Error message
-              if (_hasError) ...[
+              ),
+              if (_errorMessage != null) ...[
                 const SizedBox(height: 8),
                 Container(
                   padding: const EdgeInsets.all(12),
@@ -252,106 +187,37 @@ class _OtpPageState extends State<OtpPage> {
                     color: AppColors.dangerLight,
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Row(
-                    children: [
-                      const Icon(
-                        Icons.error_outline,
-                        color: AppColors.danger,
-                        size: 20,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          _errorMessage,
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: AppColors.danger,
-                              ),
-                        ),
-                      ),
-                    ],
-                  ),
-                )
-                    .animate()
-                    .fadeIn(duration: 300.ms)
-                    .shake(duration: 300.ms),
-              ],
-
-              const SizedBox(height: 24),
-
-              // Loading indicator
-              if (_isLoading) ...[
-                const Center(
-                  child: Column(
-                    children: [
-                      SizedBox(
-                        width: 32,
-                        height: 32,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 3,
-                          color: AppColors.primary,
-                        ),
-                      ),
-                      SizedBox(height: 12),
-                      Text('Memverifikasi...'),
-                    ],
+                  child: Text(
+                    _errorMessage!,
+                    style: const TextStyle(color: AppColors.danger),
+                    textAlign: TextAlign.center,
                   ),
                 ),
-                const SizedBox(height: 24),
               ],
-
-              // Resend button
-              Center(
-                child: _canResend
-                    ? TextButton(
-                        onPressed: _resendOtp,
-                        child: Text(
-                          'Kirim Ulang Kode',
-                          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                color: AppColors.primary,
-                                fontWeight: FontWeight.w600,
-                              ),
-                        ),
-                      )
-                    : Text(
-                        'Kirim ulang dalam ${_resendSeconds}s',
-                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                              color: AppColors.gray500,
-                            ),
-                      ),
-              )
-                  .animate()
-                  .fadeIn(duration: 400.ms, delay: 400.ms),
-
+              const SizedBox(height: 20),
+              if (_isSubmitting)
+                const Center(child: CircularProgressIndicator())
+              else
+                ElevatedButton(
+                  onPressed: () => _verifyOtp(_otpController.text),
+                  child: const Text('Verifikasi'),
+                ),
+              const SizedBox(height: 12),
+              TextButton(
+                onPressed: _resendSeconds == 0 && !_isResending ? _resendOtp : null,
+                child: Text(
+                  _isResending
+                      ? 'Mengirim ulang...'
+                      : _resendSeconds > 0
+                          ? 'Kirim ulang dalam ${_resendSeconds}s'
+                          : 'Kirim ulang kode',
+                ),
+              ),
               const SizedBox(height: 16),
-
-              // Info text
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: AppColors.blueLight,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(
-                      Icons.info_outline,
-                      color: AppColors.blue,
-                      size: 20,
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        'Kode OTP berlaku selama ${AppConstants.otpExpiryMinutes} menit. Periksa SMS masuk kamu.',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: AppColors.blue,
-                            ),
-                      ),
-                    ),
-                  ],
-                ),
-              )
-                  .animate()
-                  .fadeIn(duration: 400.ms, delay: 500.ms),
+              TextButton(
+                onPressed: _isSubmitting ? null : () => context.pop(),
+                child: const Text('Ubah nomor telepon'),
+              ),
             ],
           ),
         ),

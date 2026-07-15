@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import '../../../../config/theme.dart';
-import '../../../core/utils/formatters.dart';
-import '../../data/models/insurance_model.dart';
+
+import 'package:kopdar_driver/config/theme.dart';
+import 'package:kopdar_driver/core/utils/formatters.dart';
+import 'package:kopdar_driver/features/insurance/data/models/insurance_model.dart';
 
 /// Claim card showing claim type, status, and date.
 class ClaimCard extends StatelessWidget {
@@ -19,7 +20,7 @@ class ClaimCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -28,10 +29,8 @@ class ClaimCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header: claim type + status badge
           Row(
             children: [
-              // Type icon
               Container(
                 width: 36,
                 height: 36,
@@ -46,8 +45,6 @@ class ClaimCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 12),
-
-              // Type + policy name
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -62,6 +59,8 @@ class ClaimCard extends StatelessWidget {
                     ),
                     Text(
                       claim.policyName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontSize: 12,
                         color: AppColors.gray500,
@@ -70,13 +69,10 @@ class ClaimCard extends StatelessWidget {
                   ],
                 ),
               ),
-
               _StatusBadge(status: claim.status),
             ],
           ),
           const SizedBox(height: 12),
-
-          // Description preview
           Text(
             claim.description,
             style: TextStyle(
@@ -88,24 +84,32 @@ class ClaimCard extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 8),
-
-          // Date + evidence count
           Row(
             children: [
-              Icon(Icons.access_time_rounded,
-                  size: 13, color: AppColors.gray400),
+              Icon(
+                Icons.access_time_rounded,
+                size: 13,
+                color: AppColors.gray400,
+              ),
               const SizedBox(width: 4),
-              Text(
-                Formatters.relativeTime(claim.createdAt),
-                style: TextStyle(
-                  fontSize: 11,
-                  color: AppColors.gray500,
+              Expanded(
+                child: Text(
+                  Formatters.relativeTime(claim.createdAt),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: AppColors.gray500,
+                  ),
                 ),
               ),
               if (claim.evidenceUrls.isNotEmpty) ...[
                 const SizedBox(width: 12),
-                Icon(Icons.image_rounded,
-                    size: 13, color: AppColors.gray400),
+                Icon(
+                  Icons.image_rounded,
+                  size: 13,
+                  color: AppColors.gray400,
+                ),
                 const SizedBox(width: 4),
                 Text(
                   '${claim.evidenceUrls.length} foto',
@@ -117,8 +121,6 @@ class ClaimCard extends StatelessWidget {
               ],
             ],
           ),
-
-          // Admin notes (if any)
           if (claim.adminNotes != null && claim.adminNotes!.isNotEmpty) ...[
             const SizedBox(height: 10),
             Container(
@@ -164,31 +166,27 @@ class _StatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Color color;
-    Color bgColor;
-    String label;
+    late final Color color;
+    late final Color bgColor;
+    late final String label;
 
     switch (status) {
       case 'pending':
         color = AppColors.warning;
-        bgColor = AppColors.warning.withOpacity(0.1);
+        bgColor = AppColors.warning.withValues(alpha: 0.1);
         label = 'Menunggu';
-        break;
       case 'approved':
         color = AppColors.success;
-        bgColor = AppColors.success.withOpacity(0.1);
+        bgColor = AppColors.success.withValues(alpha: 0.1);
         label = 'Disetujui';
-        break;
       case 'rejected':
         color = AppColors.danger;
         bgColor = AppColors.dangerLight;
         label = 'Ditolak';
-        break;
       case 'reimbursed':
         color = AppColors.blue;
         bgColor = AppColors.blueLight;
         label = 'Dibayar';
-        break;
       default:
         color = AppColors.gray500;
         bgColor = AppColors.gray200;
@@ -203,6 +201,8 @@ class _StatusBadge extends StatelessWidget {
       ),
       child: Text(
         label,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
         style: TextStyle(
           fontSize: 11,
           fontWeight: FontWeight.w700,

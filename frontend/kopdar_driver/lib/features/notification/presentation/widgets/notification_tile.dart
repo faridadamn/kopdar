@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import '../../../../config/theme.dart';
-import '../../../core/utils/formatters.dart';
-import '../../data/models/notification_model.dart';
+
+import 'package:kopdar_driver/config/theme.dart';
+import 'package:kopdar_driver/core/utils/formatters.dart';
+import 'package:kopdar_driver/features/notification/data/models/notification_model.dart';
 
 /// Notification list tile: emoji, title, body, time, read/unread state.
 class NotificationTile extends StatelessWidget {
@@ -29,8 +30,11 @@ class NotificationTile extends StatelessWidget {
           color: AppColors.danger,
           borderRadius: BorderRadius.circular(14),
         ),
-        child: const Icon(Icons.delete_outline_rounded,
-            color: Colors.white, size: 24),
+        child: const Icon(
+          Icons.delete_outline_rounded,
+          color: Colors.white,
+          size: 24,
+        ),
       ),
       child: GestureDetector(
         onTap: onTap,
@@ -39,23 +43,22 @@ class NotificationTile extends StatelessWidget {
           decoration: BoxDecoration(
             color: notification.isRead
                 ? AppColors.white
-                : AppColors.primaryBg.withOpacity(0.5),
+                : AppColors.primaryBg.withValues(alpha: 0.5),
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
               color: notification.isRead
                   ? AppColors.gray200
-                  : AppColors.primary.withOpacity(0.15),
+                  : AppColors.primary.withValues(alpha: 0.15),
             ),
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Emoji/icon
               Container(
                 width: 42,
                 height: 42,
                 decoration: BoxDecoration(
-                  color: _typeColor.withOpacity(0.1),
+                  color: _typeColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Center(
@@ -66,8 +69,6 @@ class NotificationTile extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 12),
-
-              // Content
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -115,28 +116,38 @@ class NotificationTile extends StatelessWidget {
                     const SizedBox(height: 6),
                     Row(
                       children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: _typeColor.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            notification.typeLabel,
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w600,
-                              color: _typeColor,
+                        Flexible(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: _typeColor.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              notification.typeLabel,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600,
+                                color: _typeColor,
+                              ),
                             ),
                           ),
                         ),
                         const SizedBox(width: 8),
-                        Text(
-                          Formatters.relativeTime(notification.createdAt),
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: AppColors.gray400,
+                        Flexible(
+                          child: Text(
+                            Formatters.relativeTime(notification.createdAt),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: AppColors.gray400,
+                            ),
                           ),
                         ),
                       ],
@@ -158,17 +169,15 @@ class NotificationTile extends StatelessWidget {
       case 'promo':
         return AppColors.accent;
       case 'community':
+      case 'savings':
         return AppColors.primary;
       case 'sos':
         return AppColors.danger;
       case 'referral':
-        return AppColors.success;
-      case 'savings':
-        return AppColors.primary;
-      case 'insurance':
-        return AppColors.blue;
       case 'payment':
         return AppColors.success;
+      case 'insurance':
+        return AppColors.blue;
       case 'level':
         return AppColors.warning;
       default:

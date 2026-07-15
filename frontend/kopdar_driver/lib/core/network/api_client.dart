@@ -1,11 +1,13 @@
+import 'dart:async';
 import 'package:dio/dio.dart';
-import '../storage/local_storage.dart';
+import '../storage/secure_storage.dart';
 import '../../config/constants.dart';
 import '../errors/exceptions.dart';
 
 class ApiClient {
   static ApiClient? _instance;
   late final Dio _dio;
+  Future<String?>? _refreshFuture;
 
   ApiClient._() {
     _dio = Dio(
@@ -21,8 +23,8 @@ class ApiClient {
     );
 
     _dio.interceptors.addAll([
-      _AuthInterceptor(),
-      _LogInterceptor(),
+      _AuthInterceptor(this),
+      _SafeLogInterceptor(),
     ]);
   }
 
@@ -33,73 +35,86 @@ class ApiClient {
 
   Dio get dio => _dio;
 
-  Future<Response> get(
-    String path, {
-    Map<String, dynamic>? queryParameters,
-    Options? options,
-  }) async {
+  Future<Response> get(String path,
+      {Map<String, dynamic>? queryParameters, Options? options}) async {
     try {
-      return await _dio.get(
-        path,
-        queryParameters: queryParameters,
-        options: options,
-      );
+      return await _dio.get(path,
+          queryParameters: queryParameters, options: options);
     } on DioException catch (e) {
       throw _handleError(e);
     }
   }
 
-  Future<Response> post(
-    String path, {
-    dynamic data,
-    Map<String, dynamic>? queryParameters,
-    Options? options,
-  }) async {
+  Future<Response> post(String path,
+      {dynamic data,
+      Map<String, dynamic>? queryParameters,
+      Options? options}) async {
     try {
-      return await _dio.post(
-        path,
-        data: data,
-        queryParameters: queryParameters,
-        options: options,
-      );
+      return await _dio.post(path,
+          data: data, queryParameters: queryParameters, options: options);
     } on DioException catch (e) {
       throw _handleError(e);
     }
   }
 
-  Future<Response> put(
-    String path, {
-    dynamic data,
-    Map<String, dynamic>? queryParameters,
-    Options? options,
-  }) async {
+  Future<Response> put(String path,
+      {dynamic data,
+      Map<String, dynamic>? queryParameters,
+      Options? options}) async {
     try {
-      return await _dio.put(
-        path,
-        data: data,
-        queryParameters: queryParameters,
-        options: options,
-      );
+      return await _dio.put(path,
+          data: data, queryParameters: queryParameters, options: options);
     } on DioException catch (e) {
       throw _handleError(e);
     }
   }
 
-  Future<Response> delete(
-    String path, {
-    dynamic data,
-    Map<String, dynamic>? queryParameters,
-    Options? options,
-  }) async {
+  Future<Response> delete(String path,
+      {dynamic data,
+      Map<String, dynamic>? queryParameters,
+      Options? options}) async {
     try {
-      return await _dio.delete(
-        path,
-        data: data,
-        queryParameters: queryParameters,
-        options: options,
-      );
+      return await _dio.delete(path,
+          data: data, queryParameters: queryParameters, options: options);
     } on DioException catch (e) {
       throw _handleError(e);
+    }
+  }
+
+  Future<String?> refreshAccessToken() {
+    final inFlight = _refreshFuture;
+    if (inFlight != null) return inFlight;
+
+    final completer = Completer<String?>();
+    _refreshFuture = completer.future;
+    _performRefresh().then(completer.complete).catchError(completer.completeError)
+      .whenComplete(() => _refreshFuture = null);
+    return completer.future;
+  }
+
+  Future<String?> _performRefresh() async {
+    final refreshToken = await SecureStorage.refreshToken;
+    if (refreshToken == null || refreshToken.isEmpty) return null;
+
+    try {
+      final response = await Dio(BaseOptions(baseUrl: AppConstants.baseUrl)).post(
+        '/auth/refresh',
+        data: {'refresh_token': refreshToken},
+      );
+      final envelope = response.data as Map<String, dynamic>;
+      final data = envelope['data'] as Map<String, dynamic>?;
+      final accessToken = data?['access_token'] as String?;
+      final newRefreshToken = data?['refresh_token'] as String?;
+      if (accessToken == null || newRefreshToken == null) return null;
+
+      await SecureStorage.saveTokens(
+        accessToken: accessToken,
+        refreshToken: newRefreshToken,
+      );
+      return accessToken;
+    } catch (_) {
+      await SecureStorage.clearTokens();
+      return null;
     }
   }
 
@@ -123,7 +138,6 @@ class ApiClient {
   AppException _handleBadResponse(Response? response) {
     final statusCode = response?.statusCode;
     final data = response?.data;
-
     String message = 'Terjadi kesalahan.';
 
     if (data is Map<String, dynamic>) {
@@ -132,6 +146,7 @@ class ApiClient {
 
     switch (statusCode) {
       case 400:
+      case 422:
         return ValidationException(message);
       case 401:
         return UnauthorizedException('Sesi habis. Silakan masuk kembali.');
@@ -141,8 +156,6 @@ class ApiClient {
         return NotFoundException('Data tidak ditemukan.');
       case 409:
         return ConflictException(message);
-      case 422:
-        return ValidationException(message);
       case 500:
       case 502:
       case 503:
@@ -154,9 +167,14 @@ class ApiClient {
 }
 
 class _AuthInterceptor extends Interceptor {
+  final ApiClient client;
+
+  _AuthInterceptor(this.client);
+
   @override
-  void onRequest(RequestOptions options, RequestInterceptorHandler handler) async {
-    final token = LocalStorage.getString(AppConstants.keyToken);
+  void onRequest(
+      RequestOptions options, RequestInterceptorHandler handler) async {
+    final token = await SecureStorage.accessToken;
     if (token != null && token.isNotEmpty) {
       options.headers['Authorization'] = 'Bearer $token';
     }
@@ -165,27 +183,22 @@ class _AuthInterceptor extends Interceptor {
 
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) async {
-    if (err.response?.statusCode == 401) {
-      // Try to refresh token
-      final refreshToken = LocalStorage.getString(AppConstants.keyRefreshToken);
-      if (refreshToken != null) {
-        try {
-          final response = await Dio().post(
-            '${AppConstants.baseUrl}/auth/refresh',
-            data: {'refresh_token': refreshToken},
-          );
-          final newToken = response.data['access_token'];
-          await LocalStorage.setString(AppConstants.keyToken, newToken);
+    final alreadyRetried = err.requestOptions.extra['auth_retried'] == true;
+    final isAuthEndpoint = err.requestOptions.path.contains('/auth/');
 
-          // Retry original request
-          final opts = err.requestOptions;
-          opts.headers['Authorization'] = 'Bearer $newToken';
-          final retryResponse = await Dio().fetch(opts);
-          handler.resolve(retryResponse);
+    if (err.response?.statusCode == 401 && !alreadyRetried && !isAuthEndpoint) {
+      final newToken = await client.refreshAccessToken();
+      if (newToken != null) {
+        final opts = err.requestOptions;
+        opts.extra['auth_retried'] = true;
+        opts.headers['Authorization'] = 'Bearer $newToken';
+        try {
+          final response = await client.dio.fetch(opts);
+          handler.resolve(response);
           return;
-        } catch (_) {
-          // Refresh failed, clear session
-          await LocalStorage.clear();
+        } on DioException catch (retryError) {
+          handler.next(retryError);
+          return;
         }
       }
     }
@@ -193,22 +206,31 @@ class _AuthInterceptor extends Interceptor {
   }
 }
 
-class _LogInterceptor extends Interceptor {
+class _SafeLogInterceptor extends Interceptor {
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
-    print('[API] ${options.method} ${options.uri}');
+    assert(() {
+      print('[API] ${options.method} ${options.path}');
+      return true;
+    }());
     handler.next(options);
   }
 
   @override
   void onResponse(Response response, ResponseInterceptorHandler handler) {
-    print('[API] ${response.statusCode} ${response.requestOptions.uri}');
+    assert(() {
+      print('[API] ${response.statusCode} ${response.requestOptions.path}');
+      return true;
+    }());
     handler.next(response);
   }
 
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) {
-    print('[API ERROR] ${err.message}');
+    assert(() {
+      print('[API ERROR] ${err.requestOptions.path}: ${err.response?.statusCode}');
+      return true;
+    }());
     handler.next(err);
   }
 }

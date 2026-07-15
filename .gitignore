@@ -27,7 +27,6 @@ migrate_working_dir/
 .pub-cache/
 .pub/
 /build/
-/pubspec.lock
 
 # Android
 **/android/**/gradle-wrapper.jar
@@ -75,7 +74,5 @@ coverage/
 # OpenClaw workspace
 .openclaw/
 .flutter_sdk
-.openclaw/
 .env.development
 .env.production
-.github/

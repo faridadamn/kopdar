@@ -1,8 +1,10 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:dio/dio.dart';
-import '../../../core/network/api_client.dart';
-import '../../../core/network/api_endpoints.dart';
-import '../../../core/errors/exceptions.dart';
+import '../../../../core/network/api_client.dart';
+import '../../../../core/network/api_endpoints.dart';
+import '../../../../core/errors/exceptions.dart';
+import '../../../../core/storage/secure_storage.dart';
 
 class AuthRemoteDataSource {
   final ApiClient _apiClient;
@@ -10,217 +12,124 @@ class AuthRemoteDataSource {
   AuthRemoteDataSource({ApiClient? apiClient})
       : _apiClient = apiClient ?? ApiClient();
 
-  /// Send OTP to phone number
-  Future<Map<String, dynamic>> sendOtp(String phoneNumber) async {
-    try {
-      final response = await _apiClient.post(
-        ApiEndpoints.sendOtp,
-        data: {'phone': phoneNumber},
-      );
-      return response.data as Map<String, dynamic>;
-    } on AppException {
-      rethrow;
-    } catch (e) {
-      throw ServerException('Gagal mengirim OTP. Silakan coba lagi.');
+  Map<String, dynamic> _unwrap(Response response) {
+    final envelope = response.data;
+    if (envelope is! Map<String, dynamic>) {
+      throw const ServerException('Format response server tidak valid.');
     }
+    final data = envelope['data'];
+    if (data == null) return <String, dynamic>{};
+    if (data is Map<String, dynamic>) return data;
+    throw const ServerException('Payload response server tidak valid.');
   }
 
-  /// Verify OTP code
+  Future<void> sendOtp(String phoneNumber) async {
+    await _apiClient.post(
+      ApiEndpoints.sendOtp,
+      data: {'phone': phoneNumber},
+    );
+  }
+
   Future<Map<String, dynamic>> verifyOtp({
     required String phoneNumber,
     required String otpCode,
   }) async {
-    try {
-      final response = await _apiClient.post(
-        ApiEndpoints.verifyOtp,
-        data: {
-          'phone': phoneNumber,
-          'otp': otpCode,
-        },
-      );
-      return response.data as Map<String, dynamic>;
-    } on AppException {
-      rethrow;
-    } catch (e) {
-      throw ServerException('Gagal verifikasi OTP. Silakan coba lagi.');
-    }
+    final response = await _apiClient.post(
+      ApiEndpoints.verifyOtp,
+      data: {'phone': phoneNumber, 'otp': otpCode},
+    );
+    return _unwrap(response);
   }
 
-  /// Submit personal data (Step 1)
-  Future<Map<String, dynamic>> submitPersonalData({
-    required String name,
+  Future<Map<String, dynamic>> login({
+    required String phoneNumber,
+    required String otpCode,
+  }) async {
+    final response = await _apiClient.post(
+      ApiEndpoints.login,
+      data: {'phone': phoneNumber, 'otp': otpCode},
+    );
+    return _unwrap(response);
+  }
+
+  Future<Map<String, dynamic>> submitDriverRegistration({
+    required String fullName,
     required String nik,
+    required String dateOfBirth,
     required String address,
-    required String province,
     required String city,
-  }) async {
-    try {
-      final response = await _apiClient.post(
-        ApiEndpoints.registerPersonal,
-        data: {
-          'name': name,
-          'nik': nik,
-          'address': address,
-          'province': province,
-          'city': city,
-        },
-      );
-      return response.data as Map<String, dynamic>;
-    } on AppException {
-      rethrow;
-    } catch (e) {
-      throw ServerException('Gagal menyimpan data. Silakan coba lagi.');
-    }
-  }
-
-  /// Upload KTP photo
-  Future<Map<String, dynamic>> uploadKtp(File imageFile) async {
-    try {
-      final formData = FormData.fromMap({
-        'ktp_photo': await MultipartFile.fromFile(
-          imageFile.path,
-          filename: 'ktp_${DateTime.now().millisecondsSinceEpoch}.jpg',
-        ),
-      });
-      final response = await _apiClient.post(
-        ApiEndpoints.uploadKtp,
-        data: formData,
-      );
-      return response.data as Map<String, dynamic>;
-    } on AppException {
-      rethrow;
-    } catch (e) {
-      throw ServerException('Gagal upload foto KTP. Silakan coba lagi.');
-    }
-  }
-
-  /// Upload selfie with KTP
-  Future<Map<String, dynamic>> uploadSelfie(File imageFile) async {
-    try {
-      final formData = FormData.fromMap({
-        'selfie': await MultipartFile.fromFile(
-          imageFile.path,
-          filename: 'selfie_${DateTime.now().millisecondsSinceEpoch}.jpg',
-        ),
-      });
-      final response = await _apiClient.post(
-        ApiEndpoints.uploadSelfie,
-        data: formData,
-      );
-      return response.data as Map<String, dynamic>;
-    } on AppException {
-      rethrow;
-    } catch (e) {
-      throw ServerException('Gagal upload selfie. Silakan coba lagi.');
-    }
-  }
-
-  /// Submit vehicle data (Step 3)
-  Future<Map<String, dynamic>> submitVehicleData({
+    required String province,
     required String vehicleType,
-    required String brand,
-    required String model,
-    required int year,
-    required String plat,
-    required String color,
-    File? vehiclePhoto,
+    required String vehiclePlate,
+    required File ktpPhoto,
+    required File selfiePhoto,
+    required File stnkPhoto,
+    String postalCode = '',
+    String vehicleBrand = '',
+    String vehicleModel = '',
+    String vehicleColor = '',
+    int? vehicleYear,
+    String bankName = '',
+    String bankAccountNumber = '',
+    String bankAccountName = '',
+    String emergencyContactName = '',
+    String emergencyContactPhone = '',
+    List<String> platforms = const [],
   }) async {
-    try {
-      final formData = FormData.fromMap({
-        'vehicle_type': vehicleType,
-        'brand': brand,
-        'model': model,
-        'year': year,
-        'plat': plat,
-        'color': color,
-        if (vehiclePhoto != null)
-          'vehicle_photo': await MultipartFile.fromFile(
-            vehiclePhoto.path,
-            filename: 'vehicle_${DateTime.now().millisecondsSinceEpoch}.jpg',
-          ),
-      });
-      final response = await _apiClient.post(
-        ApiEndpoints.registerVehicle,
-        data: formData,
-      );
-      return response.data as Map<String, dynamic>;
-    } on AppException {
-      rethrow;
-    } catch (e) {
-      throw ServerException('Gagal menyimpan data kendaraan. Silakan coba lagi.');
-    }
+    final formData = FormData.fromMap({
+      'full_name': fullName,
+      'nik': nik,
+      'date_of_birth': dateOfBirth,
+      'address': address,
+      'city': city,
+      'province': province,
+      'postal_code': postalCode,
+      'vehicle_type': vehicleType,
+      'vehicle_plate': vehiclePlate,
+      'vehicle_brand': vehicleBrand,
+      'vehicle_model': vehicleModel,
+      'vehicle_color': vehicleColor,
+      if (vehicleYear != null) 'vehicle_year': vehicleYear,
+      'bank_name': bankName,
+      'bank_account_number': bankAccountNumber,
+      'bank_account_name': bankAccountName,
+      'emergency_contact_name': emergencyContactName,
+      'emergency_contact_phone': emergencyContactPhone,
+      'platforms': jsonEncode(platforms),
+      'ktp_photo': await MultipartFile.fromFile(
+        ktpPhoto.path,
+        filename: ktpPhoto.uri.pathSegments.last,
+      ),
+      'selfie_photo': await MultipartFile.fromFile(
+        selfiePhoto.path,
+        filename: selfiePhoto.uri.pathSegments.last,
+      ),
+      'stnk_photo': await MultipartFile.fromFile(
+        stnkPhoto.path,
+        filename: stnkPhoto.uri.pathSegments.last,
+      ),
+    });
+
+    final response = await _apiClient.post(
+      ApiEndpoints.registerDriver,
+      data: formData,
+      options: Options(contentType: 'multipart/form-data'),
+    );
+    return _unwrap(response);
   }
 
-  /// Submit platform selection (Step 4)
-  Future<Map<String, dynamic>> submitPlatforms({
-    required List<String> platforms,
-  }) async {
-    try {
-      final response = await _apiClient.post(
-        ApiEndpoints.registerPlatforms,
-        data: {'platforms': platforms},
-      );
-      return response.data as Map<String, dynamic>;
-    } on AppException {
-      rethrow;
-    } catch (e) {
-      throw ServerException('Gagal menyimpan data platform. Silakan coba lagi.');
-    }
-  }
-
-  /// Submit bank info (Step 5)
-  Future<Map<String, dynamic>> submitBankInfo({
-    required String bankName,
-    required String accountNumber,
-    required String accountName,
-  }) async {
-    try {
-      final response = await _apiClient.post(
-        ApiEndpoints.registerBank,
-        data: {
-          'bank_name': bankName,
-          'account_number': accountNumber,
-          'account_name': accountName,
-        },
-      );
-      return response.data as Map<String, dynamic>;
-    } on AppException {
-      rethrow;
-    } catch (e) {
-      throw ServerException('Gagal menyimpan data bank. Silakan coba lagi.');
-    }
-  }
-
-  /// Submit full registration
-  Future<Map<String, dynamic>> submitRegistration() async {
-    try {
-      final response = await _apiClient.post(ApiEndpoints.registerSubmit);
-      return response.data as Map<String, dynamic>;
-    } on AppException {
-      rethrow;
-    } catch (e) {
-      throw ServerException('Gagal mengirim pendaftaran. Silakan coba lagi.');
-    }
-  }
-
-  /// Check registration status
   Future<Map<String, dynamic>> checkRegistrationStatus() async {
-    try {
-      final response = await _apiClient.get(ApiEndpoints.registerStatus);
-      return response.data as Map<String, dynamic>;
-    } on AppException {
-      rethrow;
-    } catch (e) {
-      throw ServerException('Gagal memeriksa status. Silakan coba lagi.');
-    }
+    final response = await _apiClient.get(ApiEndpoints.registerStatus);
+    return _unwrap(response);
   }
 
-  /// Logout
   Future<void> logout() async {
-    try {
-      await _apiClient.post(ApiEndpoints.logout);
-    } catch (_) {
-      // Ignore logout errors, clear local data anyway
-    }
+    final refreshToken = await SecureStorage.refreshToken;
+    if (refreshToken == null || refreshToken.isEmpty) return;
+
+    await _apiClient.delete(
+      ApiEndpoints.logout,
+      data: {'refresh_token': refreshToken},
+    );
   }
 }

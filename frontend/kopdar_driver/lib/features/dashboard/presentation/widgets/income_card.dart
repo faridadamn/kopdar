@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../../config/theme.dart';
-import '../../../core/utils/formatters.dart';
+
+import 'package:kopdar_driver/config/theme.dart';
+import 'package:kopdar_driver/core/utils/formatters.dart';
 
 /// Green gradient card showing today's income summary.
 class IncomeCard extends StatelessWidget {
@@ -33,7 +34,7 @@ class IncomeCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: AppColors.primary.withOpacity(0.35),
+            color: AppColors.primary.withValues(alpha: 0.35),
             blurRadius: 16,
             offset: const Offset(0, 6),
           ),
@@ -42,7 +43,6 @@ class IncomeCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Label
           Text(
             'Penghasilan Hari Ini',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
@@ -50,8 +50,6 @@ class IncomeCard extends StatelessWidget {
                 ),
           ),
           const SizedBox(height: 6),
-
-          // Big amount
           Text(
             Formatters.currency(amount),
             style: Theme.of(context).textTheme.headlineLarge?.copyWith(
@@ -61,19 +59,11 @@ class IncomeCard extends StatelessWidget {
                 ),
           ),
           const SizedBox(height: 16),
-
-          // Stats row
           Row(
             children: [
-              _StatChip(
-                label: 'Order',
-                value: '$orderCount',
-              ),
+              _StatChip(label: 'Order', value: '$orderCount'),
               _divider,
-              _StatChip(
-                label: 'Jam',
-                value: Formatters.hours(hours),
-              ),
+              _StatChip(label: 'Jam', value: Formatters.hours(hours)),
               _divider,
               _StatChip(
                 label: 'Rata/order',

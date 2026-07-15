@@ -1,17 +1,17 @@
 class AppConstants {
   AppConstants._();
 
-  // App info
   static const String appName = 'KopDar';
   static const String appTagline = 'Koperasi Digital Gig Worker';
   static const String appVersion = '1.0.0';
 
-  // API
-  static const String baseUrl = 'https://api.kopdar.id/v1';
+  static const String baseUrl = String.fromEnvironment(
+    'API_BASE_URL',
+    defaultValue: 'http://10.0.2.2:8080/api/v1',
+  );
   static const int connectTimeoutMs = 30000;
   static const int receiveTimeoutMs = 30000;
 
-  // Storage keys
   static const String keyToken = 'auth_token';
   static const String keyRefreshToken = 'auth_refresh_token';
   static const String keyUserId = 'user_id';
@@ -22,21 +22,16 @@ class AppConstants {
   static const String keyFirstTime = 'first_time';
   static const String keyDriverStatus = 'driver_status';
 
-  // OTP
   static const int otpLength = 6;
   static const int otpResendSeconds = 60;
   static const int otpExpiryMinutes = 5;
   static const int maxOtpAttempts = 3;
   static const int lockoutMinutes = 15;
 
-  // Validation
   static const int nikLength = 16;
   static const int platMaxLength = 12;
-
-  // Timeouts
   static const int splashDurationMs = 2000;
 
-  // Platforms
   static const List<String> platforms = [
     'Gojek',
     'Grab',
@@ -45,7 +40,6 @@ class AppConstants {
     'InDrive',
   ];
 
-  // Banks
   static const List<Map<String, String>> banks = [
     {'name': 'BCA', 'code': 'bca'},
     {'name': 'BRI', 'code': 'bri'},
@@ -56,28 +50,11 @@ class AppConstants {
     {'name': 'Dana', 'code': 'dana'},
   ];
 
-  // Vehicle brands
   static const Map<String, List<String>> vehicleBrands = {
-    'Motor': [
-      'Honda',
-      'Yamaha',
-      'Suzuki',
-      'Kawasaki',
-      'Vespa',
-      'Lainnya',
-    ],
-    'Mobil': [
-      'Toyota',
-      'Honda',
-      'Daihatsu',
-      'Suzuki',
-      'Mitsubishi',
-      'Hyundai',
-      'Lainnya',
-    ],
+    'Motor': ['Honda', 'Yamaha', 'Suzuki', 'Kawasaki', 'Vespa', 'Lainnya'],
+    'Mobil': ['Toyota', 'Honda', 'Daihatsu', 'Suzuki', 'Mitsubishi', 'Hyundai', 'Lainnya'],
   };
 
-  // Indonesian provinces
   static const List<String> provinces = [
     'DKI Jakarta',
     'Jawa Barat',
@@ -94,45 +71,25 @@ class AppConstants {
     'Lainnya',
   ];
 
-  // Cities (subset for demo)
   static const Map<String, List<String>> citiesByProvince = {
-    'DKI Jakarta': [
-      'Jakarta Selatan',
-      'Jakarta Timur',
-      'Jakarta Barat',
-      'Jakarta Utara',
-      'Jakarta Pusat',
-    ],
-    'Jawa Barat': [
-      'Bandung',
-      'Bekasi',
-      'Depok',
-      'Bogor',
-      'Tangerang',
-    ],
-    'Banten': [
-      'Tangerang',
-      'Tangerang Selatan',
-      'Serang',
-      'Cilegon',
-    ],
-    'Jawa Tengah': [
-      'Semarang',
-      'Solo',
-      'Yogyakarta',
-    ],
-    'Jawa Timur': [
-      'Surabaya',
-      'Malang',
-      'Sidoarjo',
-    ],
+    'DKI Jakarta': ['Jakarta Selatan', 'Jakarta Timur', 'Jakarta Barat', 'Jakarta Utara', 'Jakarta Pusat'],
+    'Jawa Barat': ['Bandung', 'Bekasi', 'Depok', 'Bogor', 'Cimahi'],
+    'Jawa Tengah': ['Semarang', 'Surakarta', 'Magelang', 'Tegal', 'Purwokerto'],
+    'Jawa Timur': ['Surabaya', 'Malang', 'Sidoarjo', 'Kediri', 'Madiun'],
+    'Banten': ['Tangerang', 'Tangerang Selatan', 'Serang', 'Cilegon'],
+    'DI Yogyakarta': ['Yogyakarta', 'Sleman', 'Bantul', 'Kulon Progo', 'Gunungkidul'],
+    'Bali': ['Denpasar', 'Badung', 'Gianyar', 'Tabanan', 'Buleleng'],
+    'Sumatera Utara': ['Medan', 'Binjai', 'Deli Serdang', 'Pematangsiantar'],
+    'Sumatera Barat': ['Padang', 'Bukittinggi', 'Payakumbuh', 'Pariaman'],
+    'Sumatera Selatan': ['Palembang', 'Prabumulih', 'Lubuklinggau', 'Banyuasin'],
+    'Kalimantan Timur': ['Samarinda', 'Balikpapan', 'Bontang', 'Kutai Kartanegara'],
+    'Sulawesi Selatan': ['Makassar', 'Gowa', 'Maros', 'Parepare'],
+    'Lainnya': ['Lainnya'],
   };
 
-  // Year range for vehicle
   static const int vehicleYearMin = 2010;
-  static const int vehicleYearMax = 2026;
+  static int get vehicleYearMax => DateTime.now().year;
 
-  // Currency
   static const String currencySymbol = 'Rp';
   static const String locale = 'id_ID';
 }

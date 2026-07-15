@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../../config/theme.dart';
-import '../../../core/utils/formatters.dart';
+
+import 'package:kopdar_driver/config/theme.dart';
+import 'package:kopdar_driver/core/utils/formatters.dart';
 
 /// Emergency fund progress card with progress bar.
 class DanaDaruratCard extends StatelessWidget {
@@ -15,8 +16,7 @@ class DanaDaruratCard extends StatelessWidget {
     required this.dailyAmount,
   });
 
-  double get _progress =>
-      targetAmount > 0 ? currentAmount / targetAmount : 0;
+  double get _progress => targetAmount > 0 ? currentAmount / targetAmount : 0;
 
   int get _daysRemaining {
     final remaining = targetAmount - currentAmount;
@@ -41,7 +41,6 @@ class DanaDaruratCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header row
           Row(
             children: [
               const Text('🏥', style: TextStyle(fontSize: 18)),
@@ -70,8 +69,6 @@ class DanaDaruratCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 14),
-
-          // Amount text
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -88,8 +85,6 @@ class DanaDaruratCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 10),
-
-          // Progress bar
           ClipRRect(
             borderRadius: BorderRadius.circular(8),
             child: LinearProgressIndicator(
@@ -101,8 +96,6 @@ class DanaDaruratCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 10),
-
-          // Auto-save info
           Text(
             'Auto-tabung ${Formatters.currency(dailyAmount)}/hari → tercapai dalam $_daysRemaining hari',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(

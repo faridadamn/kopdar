@@ -1,12 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:flutter_animate/flutter_animate.dart';
-import '../../../config/theme.dart';
-import '../../../config/constants.dart';
-import '../../../core/utils/validators.dart';
-import '../../../core/utils/formatters.dart';
-import '../../common/widgets/custom_text_field.dart';
-import '../../common/widgets/loading_button.dart';
+import 'package:kopdar_driver/config/theme.dart';
+import 'package:kopdar_driver/features/auth/presentation/providers/auth_provider.dart';
+import 'package:provider/provider.dart';
 
 class PhoneInputPage extends StatefulWidget {
   const PhoneInputPage({super.key});
@@ -19,6 +15,7 @@ class _PhoneInputPageState extends State<PhoneInputPage> {
   final _formKey = GlobalKey<FormState>();
   final _phoneController = TextEditingController();
   bool _isLoading = false;
+  String? _errorMessage;
 
   @override
   void dispose() {
@@ -26,195 +23,138 @@ class _PhoneInputPageState extends State<PhoneInputPage> {
     super.dispose();
   }
 
-  String? _validatePhone(String? value) {
-    return Validators.validatePhone(value);
+  String _normalizePhone(String value) {
+    var digits = value.replaceAll(RegExp(r'\D'), '');
+    if (digits.startsWith('0')) {
+      digits = '62${digits.substring(1)}';
+    } else if (!digits.startsWith('62')) {
+      digits = '62$digits';
+    }
+    return '+$digits';
   }
 
-  void _formatPhoneInput(String value) {
-    // Auto-format as user types: 0812-3456-7890
-    final cleaned = value.replaceAll(RegExp(r'[\s\-]'), '');
-    if (cleaned.length <= 4) {
-      _phoneController.value = TextEditingValue(
-        text: cleaned,
-        selection: TextSelection.collapsed(offset: cleaned.length),
-      );
-    } else if (cleaned.length <= 8) {
-      final formatted = '${cleaned.substring(0, 4)}-${cleaned.substring(4)}';
-      _phoneController.value = TextEditingValue(
-        text: formatted,
-        selection: TextSelection.collapsed(offset: formatted.length),
-      );
-    } else if (cleaned.length <= 13) {
-      final formatted =
-          '${cleaned.substring(0, 4)}-${cleaned.substring(4, 8)}-${cleaned.substring(8)}';
-      _phoneController.value = TextEditingValue(
-        text: formatted,
-        selection: TextSelection.collapsed(offset: formatted.length),
-      );
+  String? _validatePhone(String? value) {
+    final digits = (value ?? '').replaceAll(RegExp(r'\D'), '');
+    if (digits.isEmpty) return 'Nomor HP wajib diisi';
+    if (!digits.startsWith('08') && !digits.startsWith('62')) {
+      return 'Gunakan nomor Indonesia yang valid';
     }
+    if (digits.length < 10 || digits.length > 15) {
+      return 'Panjang nomor HP tidak valid';
+    }
+    return null;
   }
 
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate() || _isLoading) return;
 
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
 
-    // Simulate API call
-    await Future.delayed(const Duration(seconds: 1));
-
+    final phone = _normalizePhone(_phoneController.text);
+    final auth = context.read<AuthProvider>();
+    final success = await auth.sendOtp(phone);
     if (!mounted) return;
 
-    setState(() => _isLoading = false);
+    setState(() {
+      _isLoading = false;
+      _errorMessage = success ? null : auth.errorMessage;
+    });
 
-    final phone = Validators.normalizePhone(_phoneController.text);
-    context.push('/otp', extra: phone);
+    if (success) {
+      context.push('/otp', extra: phone);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.white,
+      appBar: AppBar(
+        leading: IconButton(
+          onPressed: _isLoading ? null : () => context.pop(),
+          icon: const Icon(Icons.arrow_back_ios_new),
+        ),
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
           child: Form(
             key: _formKey,
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const SizedBox(height: 60),
-
-                // Back button
-                IconButton(
-                  onPressed: () => context.pop(),
-                  icon: const Icon(Icons.arrow_back_ios_new),
-                  style: IconButton.styleFrom(
-                    backgroundColor: AppColors.gray100,
-                    padding: const EdgeInsets.all(12),
-                  ),
-                )
-                    .animate()
-                    .fadeIn(duration: 300.ms)
-                    .slideX(begin: -0.2, end: 0, duration: 300.ms),
-
-                const SizedBox(height: 32),
-
-                // Illustration
-                Center(
-                  child: Container(
-                    width: 100,
-                    height: 100,
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryBg,
-                      borderRadius: BorderRadius.circular(24),
-                    ),
-                    child: const Center(
-                      child: Text(
-                        '📱',
-                        style: TextStyle(fontSize: 48),
-                      ),
-                    ),
-                  ),
-                )
-                    .animate()
-                    .fadeIn(duration: 400.ms, delay: 100.ms)
-                    .scale(begin: const Offset(0.8, 0.8), duration: 400.ms, delay: 100.ms),
-
-                const SizedBox(height: 32),
-
-                // Title
+                const CircleAvatar(
+                  radius: 42,
+                  backgroundColor: AppColors.primaryBg,
+                  child: Icon(Icons.phone_android, size: 42, color: AppColors.primary),
+                ),
+                const SizedBox(height: 28),
                 Text(
                   'Masuk ke KopDar',
                   style: Theme.of(context).textTheme.headlineMedium,
-                )
-                    .animate()
-                    .fadeIn(duration: 400.ms, delay: 200.ms)
-                    .slideY(begin: 0.2, end: 0, duration: 400.ms, delay: 200.ms),
-
+                  textAlign: TextAlign.center,
+                ),
                 const SizedBox(height: 8),
-
                 Text(
-                  'Masukkan nomor HP kamu untuk mulai.\nKami akan kirim kode OTP untuk verifikasi.',
+                  'Masukkan nomor HP. Kami akan mengirim kode OTP untuk verifikasi.',
                   style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                         color: AppColors.gray600,
                         height: 1.5,
                       ),
-                )
-                    .animate()
-                    .fadeIn(duration: 400.ms, delay: 300.ms),
-
+                  textAlign: TextAlign.center,
+                ),
                 const SizedBox(height: 32),
-
-                // Phone input
-                CustomTextField(
+                TextFormField(
                   controller: _phoneController,
-                  label: 'Nomor HP',
-                  hint: '0812-3456-7890',
                   keyboardType: TextInputType.phone,
-                  prefixIcon: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Text(
-                          '🇮🇩',
-                          style: TextStyle(fontSize: 20),
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          '+62',
-                          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                color: AppColors.gray700,
-                                fontWeight: FontWeight.w600,
-                              ),
-                        ),
-                        const SizedBox(width: 8),
-                        Container(
-                          width: 1,
-                          height: 24,
-                          color: AppColors.gray300,
-                        ),
-                        const SizedBox(width: 4),
-                      ],
+                  textInputAction: TextInputAction.done,
+                  enabled: !_isLoading,
+                  validator: _validatePhone,
+                  onFieldSubmitted: (_) => _submit(),
+                  decoration: const InputDecoration(
+                    labelText: 'Nomor HP',
+                    hintText: '0812 3456 7890',
+                    prefixIcon: Icon(Icons.phone_outlined),
+                  ),
+                ),
+                if (_errorMessage != null) ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.dangerLight,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      _errorMessage!,
+                      style: const TextStyle(color: AppColors.danger),
+                      textAlign: TextAlign.center,
                     ),
                   ),
-                  validator: _validatePhone,
-                  onChanged: _formatPhoneInput,
-                )
-                    .animate()
-                    .fadeIn(duration: 400.ms, delay: 400.ms)
-                    .slideY(begin: 0.2, end: 0, duration: 400.ms, delay: 400.ms),
-
-                const SizedBox(height: 32),
-
-                // Submit button
-                LoadingButton(
-                  isLoading: _isLoading,
-                  onPressed: _submit,
-                  text: 'Kirim OTP',
-                  icon: Icons.send_rounded,
-                )
-                    .animate()
-                    .fadeIn(duration: 400.ms, delay: 500.ms)
-                    .slideY(begin: 0.2, end: 0, duration: 400.ms, delay: 500.ms),
-
-                const SizedBox(height: 24),
-
-                // Terms
-                Center(
-                  child: Text(
-                    'Dengan masuk, kamu setuju dengan\nSyarat & Ketentuan dan Kebijakan Privasi KopDar',
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppColors.gray500,
-                          height: 1.5,
-                        ),
-                  ),
-                )
-                    .animate()
-                    .fadeIn(duration: 400.ms, delay: 600.ms),
-
-                const SizedBox(height: 40),
+                ],
+                const SizedBox(height: 28),
+                ElevatedButton.icon(
+                  onPressed: _isLoading ? null : _submit,
+                  icon: _isLoading
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.send_rounded),
+                  label: Text(_isLoading ? 'Mengirim...' : 'Kirim OTP'),
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  'Dengan masuk, kamu menyetujui Syarat & Ketentuan serta Kebijakan Privasi KopDar.',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppColors.gray500,
+                      ),
+                ),
               ],
             ),
           ),

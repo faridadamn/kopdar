@@ -79,8 +79,7 @@ func (h *ReferralHandler) GetInfo(c *gin.Context) {
 func (h *ReferralHandler) ApplyCode(c *gin.Context) {
 	userID := c.MustGet(middleware.ContextUserID).(uuid.UUID)
 
-	driver, err := h.driverRepo.FindByUserID(userID)
-	if err != nil {
+	if _, err := h.driverRepo.FindByUserID(userID); err != nil {
 		utils.NotFound(c, "Profil driver tidak ditemukan")
 		return
 	}
@@ -91,27 +90,23 @@ func (h *ReferralHandler) ApplyCode(c *gin.Context) {
 		return
 	}
 
-	// Check if already referred
 	hasRef, _ := h.profileRepo.HasReferral(userID)
 	if hasRef {
 		utils.BadRequest(c, "Kamu sudah menggunakan kode referral sebelumnya")
 		return
 	}
 
-	// Find referrer by code
 	referrerDriver, err := h.profileRepo.GetDriverByReferralCode(req.ReferralCode)
 	if err != nil {
 		utils.BadRequest(c, "Kode referral tidak ditemukan")
 		return
 	}
 
-	// Prevent self-referral
 	if referrerDriver.UserID == userID {
 		utils.BadRequest(c, "Tidak bisa menggunakan kode referral sendiri")
 		return
 	}
 
-	// Create referral record
 	bonusAmount := 25000.00
 	ref := &models.Referral{
 		ReferrerID:   referrerDriver.UserID,
@@ -126,7 +121,6 @@ func (h *ReferralHandler) ApplyCode(c *gin.Context) {
 		return
 	}
 
-	// Add points to referrer
 	h.pointsSvc.AddPoints(referrerDriver.ID, "referral_success")
 
 	utils.Created(c, "Kode referral berhasil digunakan! Selamat bergabung!", gin.H{

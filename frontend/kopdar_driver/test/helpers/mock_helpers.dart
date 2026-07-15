@@ -3,31 +3,18 @@ import 'package:kopdar_driver/features/profile/data/datasources/profile_remote_d
 import 'package:kopdar_driver/features/profile/data/models/profile_model.dart';
 import 'package:kopdar_driver/features/profile/data/models/vehicle_model.dart';
 
-/// Mock data source for profile tests.
 class MockProfileRemoteDataSource extends Mock
     implements ProfileRemoteDataSource {}
 
-/// Fake for ProfileModel (used in verify/when).
 class FakeProfileModel extends Fake implements ProfileModel {}
-
-/// Fake for LevelInfo.
 class FakeLevelInfo extends Fake implements LevelInfo {}
-
-/// Fake for ReferralInfo.
 class FakeReferralInfo extends Fake implements ReferralInfo {}
-
-/// Fake for SettingsModel.
 class FakeSettingsModel extends Fake implements SettingsModel {}
-
-/// Fake for VehicleModel.
 class FakeVehicleModel extends Fake implements VehicleModel {}
-
-/// Fake for DocumentModel.
 class FakeDocumentModel extends Fake implements DocumentModel {}
 
-/// Test data factory for common test objects.
 class TestData {
-  static ProfileModel profile() => const ProfileModel(
+  static ProfileModel profile() => ProfileModel(
         id: 'test-id-1',
         name: 'Budi Santoso',
         phone: '081234567890',
@@ -92,7 +79,7 @@ class TestData {
         fileName: 'sim_budi.jpg',
       );
 
-  static PointsHistory pointsHistory() => const PointsHistory(
+  static PointsHistory pointsHistory() => PointsHistory(
         id: 'ph-1',
         action: 'Order selesai',
         points: 10,
@@ -108,5 +95,5 @@ class TestData {
         createdAt: _fixedDate,
       );
 
-  static const _fixedDate = DateTime(2026, 1, 15, 10, 30);
+  static final DateTime _fixedDate = DateTime(2026, 1, 15, 10, 30);
 }

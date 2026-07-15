@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
-import '../../../config/theme.dart';
-import '../../../core/utils/formatters.dart';
-import '../../data/models/transaction_item.dart' as model;
+
+import 'package:kopdar_driver/config/theme.dart';
+import 'package:kopdar_driver/core/utils/formatters.dart';
+import 'package:kopdar_driver/features/dashboard/data/models/transaction_item.dart'
+    as model;
 
 /// A single transaction row used in the recent-transactions list.
 class TransactionItemTile extends StatelessWidget {
@@ -18,7 +20,6 @@ class TransactionItemTile extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         children: [
-          // Leading icon circle
           Container(
             width: 44,
             height: 44,
@@ -30,8 +31,6 @@ class TransactionItemTile extends StatelessWidget {
             child: Text(item.icon, style: const TextStyle(fontSize: 20)),
           ),
           const SizedBox(width: 12),
-
-          // Title + subtitle
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -53,8 +52,6 @@ class TransactionItemTile extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-
-          // Amount
           Text(
             '$sign${Formatters.currency(item.amount.round())}',
             style: Theme.of(context).textTheme.bodyLarge?.copyWith(

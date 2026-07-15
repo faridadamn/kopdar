@@ -1,8 +1,34 @@
 import 'package:intl/intl.dart';
+
 import '../../config/constants.dart';
 
 class Formatters {
   Formatters._();
+
+  static const _monthNames = <String>[
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'Mei',
+    'Jun',
+    'Jul',
+    'Agu',
+    'Sep',
+    'Okt',
+    'Nov',
+    'Des',
+  ];
+
+  static const _dayNames = <String>[
+    'Senin',
+    'Selasa',
+    'Rabu',
+    'Kamis',
+    'Jumat',
+    'Sabtu',
+    'Minggu',
+  ];
 
   static final NumberFormat _currencyFormat = NumberFormat.currency(
     locale: AppConstants.locale,
@@ -10,72 +36,59 @@ class Formatters {
     decimalDigits: 0,
   );
 
-  static final NumberFormat _compactCurrencyFormat = NumberFormat.compactCurrency(
+  static final NumberFormat _compactCurrencyFormat =
+      NumberFormat.compactCurrency(
     locale: AppConstants.locale,
     symbol: '${AppConstants.currencySymbol} ',
     decimalDigits: 0,
   );
 
-  static final DateFormat _dateFormat = DateFormat('dd MMM yyyy', 'id_ID');
-  static final DateFormat _dateTimeFormat = DateFormat('dd MMM yyyy HH:mm', 'id_ID');
-  static final DateFormat _timeFormat = DateFormat('HH:mm', 'id_ID');
-  static final DateFormat _dayFormat = DateFormat('EEEE', 'id_ID');
+  static String currency(int amount) => _currencyFormat.format(amount);
 
-  /// Format currency: 247500 → "Rp 247.500"
-  static String currency(int amount) {
-    return _currencyFormat.format(amount);
-  }
-
-  /// Format currency with sign: +Rp 247.500 / -Rp 50.000
   static String currencyWithSign(int amount) {
-    if (amount >= 0) {
-      return '+${_currencyFormat.format(amount)}';
-    }
+    if (amount >= 0) return '+${_currencyFormat.format(amount)}';
     return '-${_currencyFormat.format(amount.abs())}';
   }
 
-  /// Format compact currency: 1500000 → "Rp 1,5jt"
-  static String currencyCompact(int amount) {
-    return _compactCurrencyFormat.format(amount);
-  }
+  static String currencyCompact(int amount) =>
+      _compactCurrencyFormat.format(amount);
 
-  /// Format phone number: 081234567890 → "0812-3456-7890"
   static String phone(String phone) {
     final cleaned = phone.replaceAll(RegExp(r'[\s\-+]'), '');
-    String normalized = cleaned;
+    var normalized = cleaned;
     if (normalized.startsWith('628')) {
       normalized = '0${normalized.substring(2)}';
     }
 
     if (normalized.length >= 12) {
       return '${normalized.substring(0, 4)}-${normalized.substring(4, 8)}-${normalized.substring(8)}';
-    } else if (normalized.length >= 8) {
+    }
+    if (normalized.length >= 8) {
       return '${normalized.substring(0, 4)}-${normalized.substring(4)}';
     }
     return normalized;
   }
 
-  /// Format date: DateTime → "15 Jul 2026"
-  static String date(DateTime date) {
-    return _dateFormat.format(date);
+  static String date(DateTime value) {
+    final local = value.toLocal();
+    final day = local.day.toString().padLeft(2, '0');
+    return '$day ${_monthNames[local.month - 1]} ${local.year}';
   }
 
-  /// Format datetime: DateTime → "15 Jul 2026 14:30"
-  static String dateTime(DateTime date) {
-    return _dateTimeFormat.format(date);
+  static String dateTime(DateTime value) => '${date(value)} ${time(value)}';
+
+  static String time(DateTime value) {
+    final local = value.toLocal();
+    final hour = local.hour.toString().padLeft(2, '0');
+    final minute = local.minute.toString().padLeft(2, '0');
+    return '$hour:$minute';
   }
 
-  /// Format time: DateTime → "14:30"
-  static String time(DateTime date) {
-    return _timeFormat.format(date);
+  static String dayName(DateTime value) {
+    final local = value.toLocal();
+    return _dayNames[local.weekday - 1];
   }
 
-  /// Format day name: DateTime → "Senin"
-  static String dayName(DateTime date) {
-    return _dayFormat.format(date);
-  }
-
-  /// Get greeting based on hour
   static String greeting() {
     final hour = DateTime.now().hour;
     if (hour < 11) return 'Selamat Pagi';
@@ -84,43 +97,31 @@ class Formatters {
     return 'Selamat Malam';
   }
 
-  /// Format percentage: 0.12 → "+12%"
   static String percentage(double value) {
     final percent = (value * 100).round();
-    if (percent >= 0) {
-      return '+$percent%';
-    }
-    return '$percent%';
+    return percent >= 0 ? '+$percent%' : '$percent%';
   }
 
-  /// Format duration in hours: 8.5 → "8.5 Jam"
-  static String hours(double hours) {
-    if (hours == hours.roundToDouble()) {
-      return '${hours.round()} Jam';
-    }
-    return '${hours.toStringAsFixed(1)} Jam';
+  static String hours(double value) {
+    if (value == value.roundToDouble()) return '${value.round()} Jam';
+    return '${value.toStringAsFixed(1)} Jam';
   }
 
-  /// Format NIK with spaces for readability: 3201234567890001 → "3201 2345 6789 0001"
-  static String nik(String nik) {
-    final cleaned = nik.replaceAll(RegExp(r'\s'), '');
+  static String nik(String value) {
+    final cleaned = value.replaceAll(RegExp(r'\s'), '');
     if (cleaned.length == 16) {
       return '${cleaned.substring(0, 4)} ${cleaned.substring(4, 8)} ${cleaned.substring(8, 12)} ${cleaned.substring(12)}';
     }
     return cleaned;
   }
 
-  /// Format number with thousand separator: 247500 → "247.500"
-  static String number(int number) {
-    return NumberFormat('#,###', 'id_ID').format(number).replaceAll(',', '.');
-  }
+  static String number(int value) =>
+      NumberFormat('#,###', 'id_ID').format(value).replaceAll(',', '.');
 
-  /// Relative time: "2 jam lalu", "Kemarin", etc.
   static String relativeTime(DateTime dateTime) {
-    final now = DateTime.now();
-    final diff = now.difference(dateTime);
+    final diff = DateTime.now().difference(dateTime);
 
-    if (diff.inMinutes < 1) return 'Baru saja';
+    if (diff.isNegative || diff.inMinutes < 1) return 'Baru saja';
     if (diff.inMinutes < 60) return '${diff.inMinutes} menit lalu';
     if (diff.inHours < 24) return '${diff.inHours} jam lalu';
     if (diff.inDays == 1) return 'Kemarin';

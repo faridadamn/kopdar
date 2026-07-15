@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -11,15 +12,16 @@ import (
 	"github.com/kopdar/backend/internal/models"
 )
 
+const jwtIssuer = "kopdar-api"
+
 var (
-	ErrInvalidOTP       = errors.New("invalid or expired OTP")
-	ErrInvalidToken     = errors.New("invalid or expired token")
-	ErrTokenRevoked     = errors.New("token has been revoked")
-	ErrUserNotFound     = errors.New("user not found")
-	ErrDriverNotFound   = errors.New("driver profile not found")
+	ErrInvalidOTP     = errors.New("invalid or expired OTP")
+	ErrInvalidToken   = errors.New("invalid or expired token")
+	ErrTokenRevoked   = errors.New("token has been revoked")
+	ErrUserNotFound   = errors.New("user not found")
+	ErrDriverNotFound = errors.New("driver profile not found")
 )
 
-// Claims for JWT
 type Claims struct {
 	UserID uuid.UUID `json:"user_id"`
 	Phone  string    `json:"phone"`
@@ -27,7 +29,6 @@ type Claims struct {
 	jwt.RegisteredClaims
 }
 
-// UserRepository interface
 type UserRepository interface {
 	FindByPhone(phone string) (*models.User, error)
 	Create(phone string) (*models.User, error)
@@ -35,14 +36,12 @@ type UserRepository interface {
 	Update(user *models.User) error
 }
 
-// TokenRepository interface
 type TokenRepository interface {
 	SaveRefreshToken(userID uuid.UUID, tokenHash string, expiresAt time.Time) error
 	FindRefreshToken(tokenHash string) (*models.RefreshToken, error)
 	RevokeRefreshToken(tokenHash string) error
 }
 
-// AuthService handles authentication logic
 type AuthService struct {
 	userRepo  UserRepository
 	tokenRepo TokenRepository
@@ -60,9 +59,11 @@ func NewAuthService(userRepo UserRepository, tokenRepo TokenRepository, otpSvc *
 }
 
 func (s *AuthService) RequestOTP(phone string) (string, error) {
-	code := s.otpSvc.Generate(phone)
-	// In production, send via SMS gateway
-	// For mock mode, return the code
+	code, err := s.otpSvc.Generate(phone)
+	if err != nil {
+		return "", err
+	}
+	// TODO: send code through the configured SMS provider in non-mock mode.
 	return code, nil
 }
 
@@ -71,10 +72,8 @@ func (s *AuthService) VerifyOTP(phone, otp string) (*models.TokenResponse, error
 		return nil, ErrInvalidOTP
 	}
 
-	// Find or create user
 	user, err := s.userRepo.FindByPhone(phone)
 	if err != nil {
-		// User doesn't exist, create one
 		user, err = s.userRepo.Create(phone)
 		if err != nil {
 			return nil, err
@@ -95,11 +94,9 @@ func (s *AuthService) Refresh(refreshToken string) (*models.TokenResponse, error
 	if err != nil {
 		return nil, ErrInvalidToken
 	}
-
 	if stored.Revoked {
 		return nil, ErrTokenRevoked
 	}
-
 	if time.Now().After(stored.ExpiresAt) {
 		return nil, ErrInvalidToken
 	}
@@ -109,21 +106,29 @@ func (s *AuthService) Refresh(refreshToken string) (*models.TokenResponse, error
 		return nil, ErrUserNotFound
 	}
 
-	// Revoke old refresh token
-	_ = s.tokenRepo.RevokeRefreshToken(tokenHash)
-
+	if err := s.tokenRepo.RevokeRefreshToken(tokenHash); err != nil {
+		return nil, fmt.Errorf("revoke refresh token: %w", err)
+	}
 	return s.generateTokenPair(user)
 }
 
 func (s *AuthService) Logout(refreshToken string) error {
-	tokenHash := hashToken(refreshToken)
-	return s.tokenRepo.RevokeRefreshToken(tokenHash)
+	return s.tokenRepo.RevokeRefreshToken(hashToken(refreshToken))
 }
 
 func (s *AuthService) ValidateAccessToken(tokenString string) (*Claims, error) {
-	token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(t *jwt.Token) (interface{}, error) {
-		return s.jwtSecret, nil
-	})
+	token, err := jwt.ParseWithClaims(
+		tokenString,
+		&Claims{},
+		func(t *jwt.Token) (interface{}, error) {
+			if t.Method != jwt.SigningMethodHS256 {
+				return nil, fmt.Errorf("unexpected JWT signing method: %s", t.Method.Alg())
+			}
+			return s.jwtSecret, nil
+		},
+		jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Alg()}),
+		jwt.WithIssuer(jwtIssuer),
+	)
 	if err != nil {
 		return nil, ErrInvalidToken
 	}
@@ -132,21 +137,20 @@ func (s *AuthService) ValidateAccessToken(tokenString string) (*Claims, error) {
 	if !ok || !token.Valid {
 		return nil, ErrInvalidToken
 	}
-
 	return claims, nil
 }
 
 func (s *AuthService) generateTokenPair(user *models.User) (*models.TokenResponse, error) {
 	now := time.Now()
-
-	// Access token: 15 minutes
 	accessClaims := &Claims{
 		UserID: user.ID,
 		Phone:  user.Phone,
 		Role:   user.Role,
 		RegisteredClaims: jwt.RegisteredClaims{
+			Issuer:    jwtIssuer,
 			ExpiresAt: jwt.NewNumericDate(now.Add(15 * time.Minute)),
 			IssuedAt:  jwt.NewNumericDate(now),
+			NotBefore: jwt.NewNumericDate(now),
 			Subject:   user.ID.String(),
 		},
 	}
@@ -156,19 +160,16 @@ func (s *AuthService) generateTokenPair(user *models.User) (*models.TokenRespons
 		return nil, err
 	}
 
-	// Refresh token: 30 days
 	refreshToken := uuid.New().String()
 	refreshExpiry := now.Add(30 * 24 * time.Hour)
-	tokenHash := hashToken(refreshToken)
-
-	if err := s.tokenRepo.SaveRefreshToken(user.ID, tokenHash, refreshExpiry); err != nil {
+	if err := s.tokenRepo.SaveRefreshToken(user.ID, hashToken(refreshToken), refreshExpiry); err != nil {
 		return nil, err
 	}
 
 	return &models.TokenResponse{
 		AccessToken:  accessTokenStr,
 		RefreshToken: refreshToken,
-		ExpiresIn:    900, // 15 minutes in seconds
+		ExpiresIn:    900,
 		TokenType:    "Bearer",
 	}, nil
 }

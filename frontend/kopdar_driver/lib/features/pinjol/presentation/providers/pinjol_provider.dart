@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import '../data/models/pinjol_model.dart';
-import '../data/datasources/pinjol_remote_ds.dart';
+
+import 'package:kopdar_driver/features/pinjol/data/datasources/pinjol_remote_ds.dart';
+import 'package:kopdar_driver/features/pinjol/data/models/pinjol_model.dart';
 
 enum PinjolStatus { initial, loading, loaded, error }
 
@@ -10,7 +11,6 @@ class PinjolProvider extends ChangeNotifier {
   PinjolProvider({PinjolRemoteDataSource? dataSource})
       : _dataSource = dataSource ?? PinjolRemoteDataSource();
 
-  // ── State ──
   PinjolStatus _status = PinjolStatus.initial;
   PinjolStatus _detailStatus = PinjolStatus.initial;
   List<PinjolModel> _loans = [];
@@ -20,10 +20,9 @@ class PinjolProvider extends ChangeNotifier {
   bool _isSubmitting = false;
   int _simulationMonths = 3;
 
-  // ── Getters ──
   PinjolStatus get status => _status;
   PinjolStatus get detailStatus => _detailStatus;
-  List<PinjolModel> get loans => _loans;
+  List<PinjolModel> get loans => List.unmodifiable(_loans);
   PinjolModel? get selectedLoan => _selectedLoan;
   PayoffSimulation? get simulation => _simulation;
   String? get errorMessage => _errorMessage;
@@ -31,94 +30,76 @@ class PinjolProvider extends ChangeNotifier {
   bool get isSubmitting => _isSubmitting;
   int get simulationMonths => _simulationMonths;
 
-  // ── Derived ──
   double get totalOutstanding =>
-      _loans.fold(0, (sum, l) => sum + l.outstandingAmount);
-
+      _loans.fold(0, (sum, loan) => sum + loan.outstandingAmount);
   double get totalMonthlyInstallment =>
-      _loans.fold(0, (sum, l) => sum + l.monthlyInstallment);
+      _loans.fold(0, (sum, loan) => sum + loan.monthlyInstallment);
+  int get safeCount => _loans.where((loan) => loan.isSafe).length;
+  int get warningCount => _loans.where((loan) => loan.isWarning).length;
+  int get dangerCount => _loans.where((loan) => loan.isDanger).length;
 
-  int get safeCount => _loans.where((l) => l.isSafe).length;
-  int get warningCount => _loans.where((l) => l.isWarning).length;
-  int get dangerCount => _loans.where((l) => l.isDanger).length;
-
-  /// Debt-to-income ratio (assumes ~Rp 150/day * 30 days = 4.5jt monthly).
-  /// In production this should come from actual income data.
   double get debtToIncomeRatio {
     const estimatedMonthlyIncome = 4500000.0;
-    if (estimatedMonthlyIncome <= 0) return 0;
     return totalMonthlyInstallment / estimatedMonthlyIncome;
   }
 
   bool get isDebtRatioWarning => debtToIncomeRatio > 0.3;
 
   List<String> get recommendations {
-    final recs = <String>[];
+    final recommendations = <String>[];
     if (dangerCount > 0) {
-      recs.add(
+      recommendations.add(
         '🔴 Ada $dangerCount pinjaman berisiko tinggi! Prioritaskan lunasi segera.',
       );
     }
     if (isDebtRatioWarning) {
-      recs.add(
-        '⚠️ Rasio cicilan/penghasilan ${(debtToIncomeRatio * 100).round()}%. '
-        'Idealnya di bawah 30%.',
+      recommendations.add(
+        '⚠️ Rasio cicilan/penghasilan ${(debtToIncomeRatio * 100).round()}%. Idealnya di bawah 30%.',
       );
     }
     if (warningCount > 0) {
-      recs.add(
+      recommendations.add(
         '🟡 $warningCount pinjaman perlu perhatian. Pertimbangkan bayar lebih.',
       );
     }
     if (_loans.isEmpty) {
-      recs.add('🎉 Tidak ada pinjaman aktif. Pertahankan!');
+      recommendations.add('🎉 Tidak ada pinjaman aktif. Pertahankan!');
     }
-    return recs;
+    return recommendations;
   }
 
-  // ── Actions ──
-
-  /// Fetch all loans.
   Future<void> fetchLoans() async {
     _status = PinjolStatus.loading;
     _errorMessage = null;
     notifyListeners();
-
     try {
       _loans = await _dataSource.list();
       _status = PinjolStatus.loaded;
-      notifyListeners();
-    } catch (e) {
+    } catch (_) {
       _status = PinjolStatus.error;
       _errorMessage = 'Gagal memuat data pinjaman. Coba lagi.';
-      notifyListeners();
     }
+    notifyListeners();
   }
 
-  /// Fetch detail of a single loan.
   Future<void> fetchLoanDetail(String id) async {
     _detailStatus = PinjolStatus.loading;
     _simulation = null;
     _errorMessage = null;
     notifyListeners();
-
     try {
-      _selectedLoan = await _dataSource.get(id);
+      final loan = await _dataSource.get(id);
+      _selectedLoan = loan;
       _detailStatus = PinjolStatus.loaded;
-      // Update in list
-      final index = _loans.indexWhere((l) => l.id == id);
-      if (index != -1) {
-        _loans[index] = _selectedLoan!;
-      }
-      notifyListeners();
-    } catch (e) {
+      final index = _loans.indexWhere((item) => item.id == id);
+      if (index >= 0) _loans[index] = loan;
+    } catch (_) {
       _detailStatus = PinjolStatus.error;
       _errorMessage = 'Gagal memuat detail pinjaman.';
-      notifyListeners();
     }
+    notifyListeners();
   }
 
-  /// Create a new loan.
   Future<bool> createLoan({
     required String appName,
     required double principal,
@@ -130,7 +111,6 @@ class PinjolProvider extends ChangeNotifier {
     _isSubmitting = true;
     _errorMessage = null;
     notifyListeners();
-
     try {
       final loan = await _dataSource.create(
         appName: appName,
@@ -141,62 +121,46 @@ class PinjolProvider extends ChangeNotifier {
         endDate: endDate,
       );
       _loans.insert(0, loan);
-      _isSubmitting = false;
-      notifyListeners();
       return true;
-    } catch (e) {
-      _isSubmitting = false;
+    } catch (_) {
       _errorMessage = 'Gagal menyimpan pinjaman.';
-      notifyListeners();
       return false;
+    } finally {
+      _isSubmitting = false;
+      notifyListeners();
     }
   }
 
-  /// Delete a loan.
   Future<bool> deleteLoan(String id) async {
-    final index = _loans.indexWhere((l) => l.id == id);
-    PinjolModel? removed;
-    if (index != -1) {
-      removed = _loans.removeAt(index);
-      notifyListeners();
-    }
-
+    final index = _loans.indexWhere((loan) => loan.id == id);
+    final removed = index >= 0 ? _loans.removeAt(index) : null;
+    notifyListeners();
     try {
       await _dataSource.delete(id);
-      if (_selectedLoan?.id == id) {
-        _selectedLoan = null;
-      }
+      if (_selectedLoan?.id == id) _selectedLoan = null;
       notifyListeners();
       return true;
-    } catch (e) {
-      if (removed != null && index != -1) {
-        _loans.insert(index, removed);
-        notifyListeners();
-      }
+    } catch (_) {
+      if (removed != null && index >= 0) _loans.insert(index, removed);
       _errorMessage = 'Gagal menghapus pinjaman.';
       notifyListeners();
       return false;
     }
   }
 
-  /// Set simulation months and fetch simulation.
   Future<void> setSimulationMonths(int months) async {
     _simulationMonths = months;
-    if (_selectedLoan != null) {
-      await fetchSimulation(_selectedLoan!.id, months);
-    }
+    final loan = _selectedLoan;
+    if (loan != null) await fetchSimulation(loan.id, months);
     notifyListeners();
   }
 
-  /// Fetch payoff simulation for a loan.
   Future<void> fetchSimulation(String id, int months) async {
     try {
       _simulation = await _dataSource.simulate(id, months: months);
-      notifyListeners();
-    } catch (e) {
-      // Simulation is optional, fail silently
+    } catch (_) {
       _simulation = null;
-      notifyListeners();
     }
+    notifyListeners();
   }
 }

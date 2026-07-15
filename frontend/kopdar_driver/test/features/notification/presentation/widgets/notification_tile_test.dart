@@ -41,7 +41,7 @@ void main() {
 
       await tester.pumpWidget(buildTile(notif));
 
-      expect(find.text('Promo'), findsOneWidget);
+      expect(find.text('Promo'), findsNWidgets(2));
       expect(find.text('🎉'), findsOneWidget);
     });
 
@@ -58,10 +58,9 @@ void main() {
 
       await tester.pumpWidget(buildTile(notif));
 
-      // Unread dot should be visible (small circle)
       expect(
         find.byWidgetPredicate(
-          (w) => w is Container && w.decoration is BoxDecoration,
+          (widget) => widget is Container && widget.decoration is BoxDecoration,
         ),
         findsWidgets,
       );
@@ -80,7 +79,6 @@ void main() {
       await tester.pumpWidget(buildTile(notif));
       await tester.pumpAndSettle();
 
-      // Should render without errors
       expect(find.text('Test'), findsOneWidget);
     });
 
@@ -95,14 +93,16 @@ void main() {
         'created_at': '2026-01-15T10:30:00.000',
       });
 
-      await tester.pumpWidget(MaterialApp(
-        home: Scaffold(
-          body: NotificationTile(
-            notification: notif,
-            onTap: () => tapped = true,
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: NotificationTile(
+              notification: notif,
+              onTap: () => tapped = true,
+            ),
           ),
         ),
-      ));
+      );
 
       await tester.tap(find.text('Tap me'));
       expect(tapped, isTrue);

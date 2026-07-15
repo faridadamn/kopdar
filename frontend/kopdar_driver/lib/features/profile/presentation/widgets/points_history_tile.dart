@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import '../../../../config/theme.dart';
-import '../../../core/utils/formatters.dart';
-import '../../data/models/profile_model.dart';
+
+import 'package:kopdar_driver/config/theme.dart';
+import 'package:kopdar_driver/core/utils/formatters.dart';
+import 'package:kopdar_driver/features/profile/data/models/profile_model.dart';
 
 /// Points history tile: action, points (+/-), date.
 class PointsHistoryTile extends StatelessWidget {
@@ -17,14 +18,11 @@ class PointsHistoryTile extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         children: [
-          // Icon
           Container(
             width: 36,
             height: 36,
             decoration: BoxDecoration(
-              color: isEarn
-                  ? AppColors.primaryBg
-                  : AppColors.accentLight,
+              color: isEarn ? AppColors.primaryBg : AppColors.accentLight,
               shape: BoxShape.circle,
             ),
             child: Center(
@@ -35,14 +33,14 @@ class PointsHistoryTile extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 12),
-
-          // Action + date
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   entry.action,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     fontWeight: FontWeight.w600,
                     fontSize: 14,
@@ -60,8 +58,7 @@ class PointsHistoryTile extends StatelessWidget {
               ],
             ),
           ),
-
-          // Points
+          const SizedBox(width: 8),
           Text(
             '${isEarn ? '+' : '-'}${entry.points}',
             style: TextStyle(

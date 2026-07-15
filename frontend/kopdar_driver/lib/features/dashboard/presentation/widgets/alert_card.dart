@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
-import '../../../config/theme.dart';
+
+import 'package:kopdar_driver/config/theme.dart';
 
 /// Conditional warning/info/danger alert card that can be dismissed.
 class AlertCard extends StatelessWidget {
   final String message;
-  final String type; // 'warning', 'info', 'danger'
+  final String type;
   final VoidCallback? onDismiss;
   final VoidCallback? onTap;
 
@@ -75,7 +76,10 @@ class AlertCard extends StatelessWidget {
           decoration: BoxDecoration(
             color: _backgroundColor,
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: _borderColor.withOpacity(0.3), width: 1),
+            border: Border.all(
+              color: _borderColor.withValues(alpha: 0.3),
+              width: 1,
+            ),
           ),
           child: Row(
             children: [
@@ -92,7 +96,11 @@ class AlertCard extends StatelessWidget {
               ),
               GestureDetector(
                 onTap: onDismiss,
-                child: const Icon(Icons.close, size: 18, color: AppColors.gray500),
+                child: const Icon(
+                  Icons.close,
+                  size: 18,
+                  color: AppColors.gray500,
+                ),
               ),
             ],
           ),

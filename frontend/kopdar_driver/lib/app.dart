@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+
 import 'config/theme.dart';
 import 'config/routes.dart';
 import 'core/errors/error_handler.dart';

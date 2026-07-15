@@ -1,16 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import '../../../config/theme.dart';
-import '../../../finance/presentation/providers/finance_provider.dart';
-import '../providers/dashboard_provider.dart';
-import '../widgets/income_card.dart';
-import '../widgets/quick_actions.dart';
-import '../widgets/alert_card.dart';
-import '../widgets/dana_darurat_card.dart';
-import '../widgets/recent_transactions.dart';
-import '../../../notification/presentation/widgets/notification_badge.dart';
-import '../../../notification/presentation/providers/notification_provider.dart';
+
+import 'package:kopdar_driver/config/theme.dart';
+import 'package:kopdar_driver/features/dashboard/presentation/providers/dashboard_provider.dart';
+import 'package:kopdar_driver/features/dashboard/presentation/widgets/alert_card.dart';
+import 'package:kopdar_driver/features/dashboard/presentation/widgets/dana_darurat_card.dart';
+import 'package:kopdar_driver/features/dashboard/presentation/widgets/income_card.dart';
+import 'package:kopdar_driver/features/dashboard/presentation/widgets/quick_actions.dart';
+import 'package:kopdar_driver/features/dashboard/presentation/widgets/recent_transactions.dart';
+import 'package:kopdar_driver/features/finance/presentation/providers/finance_provider.dart';
+import 'package:kopdar_driver/features/notification/presentation/providers/notification_provider.dart';
+import 'package:kopdar_driver/features/notification/presentation/widgets/notification_badge.dart';
 
 /// Main home dashboard screen for KopDar drivers.
 class HomePage extends StatelessWidget {
@@ -55,14 +56,9 @@ class _DashboardContent extends StatelessWidget {
           parent: BouncingScrollPhysics(),
         ),
         slivers: [
-          // ── Green header ──
           SliverToBoxAdapter(
-            child: _Header(
-              driverName: provider.driverName,
-            ),
+            child: _Header(driverName: provider.driverName),
           ),
-
-          // ── Body content (overlaps header) ──
           SliverToBoxAdapter(
             child: Transform.translate(
               offset: const Offset(0, -30),
@@ -71,7 +67,6 @@ class _DashboardContent extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Income Card
                     IncomeCard(
                       amount: summary.income,
                       orderCount: summary.orderCount,
@@ -80,12 +75,8 @@ class _DashboardContent extends StatelessWidget {
                       changePercent: summary.changePercent,
                     ),
                     const SizedBox(height: 12),
-
-                    // Hourly Rate Mini Card
                     const _HourlyRateMiniCard(),
                     const SizedBox(height: 20),
-
-                    // Quick Actions
                     QuickActionsGrid(
                       onTabungan: () => context.push('/savings'),
                       onAsuransi: () => context.push('/insurance'),
@@ -95,8 +86,6 @@ class _DashboardContent extends StatelessWidget {
                       onRewards: () => context.push('/rewards'),
                     ),
                     const SizedBox(height: 20),
-
-                    // Alert Card (conditional)
                     if (provider.alertMessage != null) ...[
                       AlertCard(
                         message: provider.alertMessage!,
@@ -106,8 +95,6 @@ class _DashboardContent extends StatelessWidget {
                       ),
                       const SizedBox(height: 20),
                     ],
-
-                    // Dana Darurat
                     if (provider.danaDarurat != null)
                       DanaDaruratCard(
                         currentAmount: provider.danaDarurat!.currentAmount,
@@ -115,13 +102,11 @@ class _DashboardContent extends StatelessWidget {
                         dailyAmount: provider.danaDarurat!.dailyAmount,
                       ),
                     const SizedBox(height: 20),
-
-                    // Recent Transactions
                     RecentTransactions(
                       transactions: provider.recentTransactions,
                       onViewAll: () => context.push('/income/history'),
                     ),
-                    const SizedBox(height: 80), // padding for FAB
+                    const SizedBox(height: 80),
                   ],
                 ),
               ),
@@ -133,7 +118,6 @@ class _DashboardContent extends StatelessWidget {
   }
 }
 
-/// Mini card showing hourly rate on the dashboard.
 class _HourlyRateMiniCard extends StatefulWidget {
   const _HourlyRateMiniCard();
 
@@ -146,6 +130,7 @@ class _HourlyRateMiniCardState extends State<_HourlyRateMiniCard> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
       final provider = context.read<FinanceProvider>();
       if (provider.hourlyRate == null) {
         provider.fetchHourlyRate('today');
@@ -169,7 +154,7 @@ class _HourlyRateMiniCardState extends State<_HourlyRateMiniCard> {
               borderRadius: BorderRadius.circular(14),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.04),
+                  color: Colors.black.withValues(alpha: 0.04),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),
@@ -192,7 +177,7 @@ class _HourlyRateMiniCardState extends State<_HourlyRateMiniCard> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
+                      const Text(
                         'Tarif Per Jam',
                         style: TextStyle(
                           fontSize: 11,
@@ -203,6 +188,8 @@ class _HourlyRateMiniCardState extends State<_HourlyRateMiniCard> {
                       if (data != null)
                         Text(
                           '${_formatRate(data.hourlyRate)} ${data.trendEmoji}${_formatPercent(data.percentDiff)}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w700,
@@ -221,7 +208,7 @@ class _HourlyRateMiniCardState extends State<_HourlyRateMiniCard> {
                           ),
                         )
                       else
-                        Text(
+                        const Text(
                           'Ketuk untuk lihat detail',
                           style: TextStyle(
                             fontSize: 13,
@@ -231,7 +218,7 @@ class _HourlyRateMiniCardState extends State<_HourlyRateMiniCard> {
                     ],
                   ),
                 ),
-                Icon(
+                const Icon(
                   Icons.arrow_forward_ios_rounded,
                   size: 14,
                   color: AppColors.gray400,
@@ -250,22 +237,20 @@ class _HourlyRateMiniCardState extends State<_HourlyRateMiniCard> {
 
   String _formatPercent(double value) {
     final percent = (value * 100).round();
-    if (percent >= 0) return '+$percent%';
-    return '$percent%';
+    return percent >= 0 ? '+$percent%' : '$percent%';
   }
 
   String _formatNumber(int number) {
-    final s = number.toString();
+    final value = number.toString();
     final buffer = StringBuffer();
-    for (int i = 0; i < s.length; i++) {
-      if (i > 0 && (s.length - i) % 3 == 0) buffer.write('.');
-      buffer.write(s[i]);
+    for (var i = 0; i < value.length; i++) {
+      if (i > 0 && (value.length - i) % 3 == 0) buffer.write('.');
+      buffer.write(value[i]);
     }
     return buffer.toString();
   }
 }
 
-/// Green gradient header with greeting, driver name, and avatar.
 class _Header extends StatelessWidget {
   final String driverName;
 
@@ -281,7 +266,7 @@ class _Header extends StatelessWidget {
         top: topPadding + 16,
         left: 20,
         right: 20,
-        bottom: 60, // extra space for overlap
+        bottom: 60,
       ),
       decoration: const BoxDecoration(
         gradient: LinearGradient(
@@ -292,7 +277,6 @@ class _Header extends StatelessWidget {
       ),
       child: Row(
         children: [
-          // Greeting + name
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -306,6 +290,8 @@ class _Header extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   driverName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                         color: Colors.white,
                       ),
@@ -313,15 +299,13 @@ class _Header extends StatelessWidget {
               ],
             ),
           ),
-
-          // Notification bell
           GestureDetector(
             onTap: () => context.push('/notifications'),
             child: Container(
               width: 42,
               height: 42,
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.15),
+                color: Colors.white.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Center(
@@ -334,8 +318,6 @@ class _Header extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 10),
-
-          // Avatar
           Container(
             width: 48,
             height: 48,

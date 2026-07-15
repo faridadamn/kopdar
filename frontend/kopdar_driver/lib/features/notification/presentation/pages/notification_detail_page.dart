@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../config/theme.dart';
-import '../../../core/utils/formatters.dart';
-import '../../data/models/notification_model.dart';
-import '../providers/notification_provider.dart';
+import 'package:provider/provider.dart';
+
+import 'package:kopdar_driver/config/theme.dart';
+import 'package:kopdar_driver/core/utils/formatters.dart';
+import 'package:kopdar_driver/features/notification/data/models/notification_model.dart';
+import 'package:kopdar_driver/features/notification/presentation/providers/notification_provider.dart';
 
 /// Notification detail page showing full content.
 class NotificationDetailPage extends StatelessWidget {
@@ -16,9 +17,13 @@ class NotificationDetailPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<NotificationProvider>(
       builder: (context, provider, _) {
-        final notification = provider.notifications
-            .where((n) => n.id == notificationId)
-            .firstOrNull;
+        NotificationModel? notification;
+        for (final item in provider.notifications) {
+          if (item.id == notificationId) {
+            notification = item;
+            break;
+          }
+        }
 
         if (notification == null) {
           return Scaffold(
@@ -47,10 +52,10 @@ class NotificationDetailPage extends StatelessWidget {
           );
         }
 
-        // Mark as read when viewing
-        if (!notification.isRead) {
+        final item = notification;
+        if (!item.isRead) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            provider.markAsRead(notification.id);
+            provider.markAsRead(item.id);
           });
         }
 
@@ -65,9 +70,9 @@ class NotificationDetailPage extends StatelessWidget {
             actions: [
               IconButton(
                 icon: const Icon(Icons.delete_outline_rounded),
-                onPressed: () {
-                  provider.deleteNotification(notification.id);
-                  context.pop();
+                onPressed: () async {
+                  await provider.deleteNotification(item.id);
+                  if (context.mounted) context.pop();
                 },
               ),
             ],
@@ -75,48 +80,60 @@ class NotificationDetailPage extends StatelessWidget {
           body: ListView(
             padding: const EdgeInsets.all(20),
             children: [
-              // ── Type badge ──
               Row(
                 children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 5),
-                    decoration: BoxDecoration(
-                      color: _typeColor(notification.type).withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(notification.typeEmoji,
-                            style: const TextStyle(fontSize: 14)),
-                        const SizedBox(width: 6),
-                        Text(
-                          notification.typeLabel,
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                            color: _typeColor(notification.type),
+                  Flexible(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: _typeColor(item.type).withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            item.typeEmoji,
+                            style: const TextStyle(fontSize: 14),
                           ),
-                        ),
-                      ],
+                          const SizedBox(width: 6),
+                          Flexible(
+                            child: Text(
+                              item.typeLabel,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: _typeColor(item.type),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                   const Spacer(),
-                  Text(
-                    Formatters.relativeTime(notification.createdAt),
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: AppColors.gray500,
+                  Flexible(
+                    child: Text(
+                      Formatters.relativeTime(item.createdAt),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.end,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppColors.gray500,
+                      ),
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 20),
-
-              // ── Title ──
               Text(
-                notification.title,
+                item.title,
                 style: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w800,
@@ -124,13 +141,11 @@ class NotificationDetailPage extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 16),
-
-              // ── Image if any ──
-              if (notification.imageUrl != null) ...[
+              if (item.imageUrl != null) ...[
                 ClipRRect(
                   borderRadius: BorderRadius.circular(14),
                   child: Image.network(
-                    notification.imageUrl!,
+                    item.imageUrl!,
                     width: double.infinity,
                     height: 200,
                     fit: BoxFit.cover,
@@ -141,19 +156,16 @@ class NotificationDetailPage extends StatelessWidget {
                         color: AppColors.gray200,
                         borderRadius: BorderRadius.circular(14),
                       ),
-                      child: Center(
-                        child: Text(
-                          notification.typeEmoji,
-                          style: const TextStyle(fontSize: 48),
-                        ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        item.typeEmoji,
+                        style: const TextStyle(fontSize: 48),
                       ),
                     ),
                   ),
                 ),
                 const SizedBox(height: 16),
               ],
-
-              // ── Body ──
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(18),
@@ -162,7 +174,7 @@ class NotificationDetailPage extends StatelessWidget {
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Text(
-                  notification.body,
+                  item.body,
                   style: const TextStyle(
                     fontSize: 15,
                     color: AppColors.gray800,
@@ -171,15 +183,13 @@ class NotificationDetailPage extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 20),
-
-              // ── Deep link button ──
-              if (notification.route != null)
+              if (item.route != null)
                 ElevatedButton.icon(
-                  onPressed: () => context.push(notification.route!),
+                  onPressed: () => context.push(item.route!),
                   icon: const Icon(Icons.open_in_new_rounded, size: 18),
-                  label: Text(_actionLabel(notification.type)),
+                  label: Text(_actionLabel(item.type)),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: _typeColor(notification.type),
+                    backgroundColor: _typeColor(item.type),
                   ),
                 ),
               const SizedBox(height: 32),
@@ -197,17 +207,15 @@ class NotificationDetailPage extends StatelessWidget {
       case 'promo':
         return AppColors.accent;
       case 'community':
+      case 'savings':
         return AppColors.primary;
       case 'sos':
         return AppColors.danger;
       case 'referral':
-        return AppColors.success;
-      case 'savings':
-        return AppColors.primary;
-      case 'insurance':
-        return AppColors.blue;
       case 'payment':
         return AppColors.success;
+      case 'insurance':
+        return AppColors.blue;
       case 'level':
         return AppColors.warning;
       default:

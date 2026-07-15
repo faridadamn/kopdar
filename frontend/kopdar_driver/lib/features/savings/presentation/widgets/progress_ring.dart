@@ -1,10 +1,10 @@
 import 'dart:math' as math;
-import 'package:flutter/material.dart';
-import '../../../config/theme.dart';
 
-/// Circular progress ring with percentage in the center.
+import 'package:flutter/material.dart';
+import 'package:kopdar_driver/config/theme.dart';
+
 class ProgressRing extends StatelessWidget {
-  final double progress; // 0.0 to 1.0
+  final double progress;
   final double size;
   final double strokeWidth;
   final Color? color;
@@ -76,43 +76,39 @@ class _RingPainter extends CustomPainter {
     final center = Offset(size.width / 2, size.height / 2);
     final radius = (size.width - strokeWidth) / 2;
 
-    // Background ring
-    final bgPaint = Paint()
+    final backgroundPaint = Paint()
       ..color = backgroundColor
       ..style = PaintingStyle.stroke
       ..strokeWidth = strokeWidth
       ..strokeCap = StrokeCap.round;
+    canvas.drawCircle(center, radius, backgroundPaint);
 
-    canvas.drawCircle(center, radius, bgPaint);
-
-    // Progress ring with gradient
     final rect = Rect.fromCircle(center: center, radius: radius);
-    final gradientPaint = Paint()
+    final progressPaint = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = strokeWidth
       ..strokeCap = StrokeCap.round
       ..shader = SweepGradient(
         startAngle: -math.pi / 2,
         endAngle: 3 * math.pi / 2,
-        colors: [
-          color.withOpacity(0.6),
-          color,
-        ],
+        colors: [color.withValues(alpha: 0.6), color],
         stops: const [0.0, 1.0],
       ).createShader(rect);
 
     canvas.drawArc(
-      Rect.fromCircle(center: center, radius: radius),
+      rect,
       -math.pi / 2,
       2 * math.pi * progress,
       false,
-      gradientPaint,
+      progressPaint,
     );
   }
 
   @override
   bool shouldRepaint(covariant _RingPainter oldDelegate) {
     return oldDelegate.progress != progress ||
-        oldDelegate.color != color;
+        oldDelegate.color != color ||
+        oldDelegate.backgroundColor != backgroundColor ||
+        oldDelegate.strokeWidth != strokeWidth;
   }
 }
