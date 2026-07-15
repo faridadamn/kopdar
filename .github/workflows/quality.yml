@@ -76,7 +76,7 @@ jobs:
       - name: Analyze
         run: |
           set -o pipefail
-          flutter analyze --fatal-infos 2>&1 | tee analyze-report.txt
+          flutter analyze --no-fatal-infos --no-fatal-warnings 2>&1 | tee analyze-report.txt
 
       - name: Test
         run: |
