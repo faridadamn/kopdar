@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:flutter_animate/flutter_animate.dart';
-import '../../../config/theme.dart';
-import '../../../config/constants.dart';
-import '../../../core/utils/validators.dart';
-import '../../common/widgets/custom_text_field.dart';
-import '../../common/widgets/loading_button.dart';
+import 'package:provider/provider.dart';
+import '../../../../config/constants.dart';
+import '../providers/registration_draft_provider.dart';
 
 class PersonalDataPage extends StatefulWidget {
   const PersonalDataPage({super.key});
@@ -16,281 +13,166 @@ class PersonalDataPage extends StatefulWidget {
 
 class _PersonalDataPageState extends State<PersonalDataPage> {
   final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController();
-  final _nikController = TextEditingController();
-  final _addressController = TextEditingController();
+  final _name = TextEditingController();
+  final _nik = TextEditingController();
+  final _address = TextEditingController();
+  final _postalCode = TextEditingController();
+  final _emergencyName = TextEditingController();
+  final _emergencyPhone = TextEditingController();
+  String? _province;
+  String? _city;
+  DateTime? _dateOfBirth;
 
-  String? _selectedProvince;
-  String? _selectedCity;
-  bool _isLoading = false;
-
-  List<String> _availableCities = [];
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final draft = context.read<RegistrationDraftProvider>();
+    if (_name.text.isEmpty) {
+      _name.text = draft.fullName;
+      _nik.text = draft.nik;
+      _address.text = draft.address;
+      _postalCode.text = draft.postalCode;
+      _emergencyName.text = draft.emergencyContactName;
+      _emergencyPhone.text = draft.emergencyContactPhone;
+      _province = draft.province.isEmpty ? null : draft.province;
+      _city = draft.city.isEmpty ? null : draft.city;
+      _dateOfBirth = draft.dateOfBirth;
+    }
+  }
 
   @override
   void dispose() {
-    _nameController.dispose();
-    _nikController.dispose();
-    _addressController.dispose();
+    _name.dispose();
+    _nik.dispose();
+    _address.dispose();
+    _postalCode.dispose();
+    _emergencyName.dispose();
+    _emergencyPhone.dispose();
     super.dispose();
   }
 
-  void _onProvinceChanged(String? province) {
-    setState(() {
-      _selectedProvince = province;
-      _selectedCity = null;
-      _availableCities = AppConstants.citiesByProvince[province] ?? [];
-    });
+  Future<void> _pickDate() async {
+    final value = await showDatePicker(
+      context: context,
+      initialDate: _dateOfBirth ?? DateTime(1995, 1, 1),
+      firstDate: DateTime(1940),
+      lastDate: DateTime.now().subtract(const Duration(days: 365 * 17)),
+    );
+    if (value != null) setState(() => _dateOfBirth = value);
   }
 
-  Future<void> _submit() async {
+  void _submit() {
     if (!_formKey.currentState!.validate()) return;
-    if (_selectedProvince == null) {
+    if (_province == null || _city == null || _dateOfBirth == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Pilih provinsi terlebih dahulu')),
-      );
-      return;
-    }
-    if (_selectedCity == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Pilih kota terlebih dahulu')),
+        const SnackBar(content: Text('Tanggal lahir, provinsi, dan kota wajib diisi.')),
       );
       return;
     }
 
-    setState(() => _isLoading = true);
-
-    // Simulate API call
-    await Future.delayed(const Duration(seconds: 1));
-
-    if (!mounted) return;
-    setState(() => _isLoading = false);
-
-    // Navigate to vehicle data
+    final draft = context.read<RegistrationDraftProvider>();
+    draft.setPersonalData(
+      fullName: _name.text.trim(),
+      nik: _nik.text.trim(),
+      dateOfBirth: _dateOfBirth!,
+      address: _address.text.trim(),
+      province: _province!,
+      city: _city!,
+      postalCode: _postalCode.text.trim(),
+    );
+    draft.setEmergencyContact(
+      name: _emergencyName.text.trim(),
+      phone: _emergencyPhone.text.trim(),
+    );
     context.push('/register/vehicle');
+  }
+
+  String _dateLabel() {
+    final date = _dateOfBirth;
+    if (date == null) return 'Pilih tanggal lahir';
+    return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
   }
 
   @override
   Widget build(BuildContext context) {
+    final cities = AppConstants.citiesByProvince[_province] ?? const <String>[];
     return Scaffold(
-      backgroundColor: AppColors.white,
-      appBar: AppBar(
-        title: const Text('Data Diri'),
-        leading: IconButton(
-          onPressed: () => context.pop(),
-          icon: const Icon(Icons.arrow_back_ios_new),
-          style: IconButton.styleFrom(
-            backgroundColor: AppColors.gray100,
-            padding: const EdgeInsets.all(12),
-          ),
-        ),
-      ),
-      body: SafeArea(
-        child: Column(
+      appBar: AppBar(title: const Text('Data Diri')),
+      body: Form(
+        key: _formKey,
+        child: ListView(
+          padding: const EdgeInsets.all(24),
           children: [
-            // Progress bar
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Text(
-                        'Langkah 1 dari 5',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: AppColors.gray600,
-                            ),
-                      ),
-                      const Spacer(),
-                      Text(
-                        '20%',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: AppColors.primary,
-                              fontWeight: FontWeight.w600,
-                            ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  LinearProgressIndicator(
-                    value: 0.2,
-                    backgroundColor: AppColors.gray200,
-                    valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary),
-                    borderRadius: BorderRadius.circular(4),
-                    minHeight: 6,
-                  ),
-                ],
-              ),
+            const LinearProgressIndicator(value: 0.2),
+            const SizedBox(height: 24),
+            TextFormField(
+              controller: _name,
+              decoration: const InputDecoration(labelText: 'Nama lengkap'),
+              validator: (v) => v == null || v.trim().length < 3 ? 'Nama wajib diisi' : null,
             ),
-
-            // Form
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const SizedBox(height: 8),
-
-                      Text(
-                        'Isi data diri kamu',
-                        style: Theme.of(context).textTheme.titleLarge,
-                      )
-                          .animate()
-                          .fadeIn(duration: 300.ms),
-
-                      const SizedBox(height: 4),
-
-                      Text(
-                        'Sesuai dengan data KTP kamu ya!',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: AppColors.gray600,
-                            ),
-                      ),
-
-                      const SizedBox(height: 24),
-
-                      // Name
-                      CustomTextField(
-                        controller: _nameController,
-                        label: 'Nama Lengkap',
-                        hint: 'Sesuai KTP',
-                        validator: Validators.validateName,
-                        textCapitalization: TextCapitalization.words,
-                      )
-                          .animate()
-                          .fadeIn(duration: 300.ms, delay: 100.ms),
-
-                      const SizedBox(height: 16),
-
-                      // NIK
-                      CustomTextField(
-                        controller: _nikController,
-                        label: 'NIK',
-                        hint: '16 digit nomor KTP',
-                        keyboardType: TextInputType.number,
-                        validator: Validators.validateNik,
-                        maxLength: 16,
-                      )
-                          .animate()
-                          .fadeIn(duration: 300.ms, delay: 150.ms),
-
-                      const SizedBox(height: 16),
-
-                      // Address
-                      CustomTextField(
-                        controller: _addressController,
-                        label: 'Alamat Domisili',
-                        hint: 'Jalan, RT/RW, Kelurahan, Kecamatan',
-                        maxLines: 3,
-                        validator: Validators.validateAddress,
-                      )
-                          .animate()
-                          .fadeIn(duration: 300.ms, delay: 200.ms),
-
-                      const SizedBox(height: 16),
-
-                      // Province dropdown
-                      Text(
-                        'Provinsi',
-                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                              fontWeight: FontWeight.w600,
-                            ),
-                      ),
-                      const SizedBox(height: 8),
-                      DropdownButtonFormField<String>(
-                        value: _selectedProvince,
-                        decoration: InputDecoration(
-                          hintText: 'Pilih Provinsi',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: AppColors.gray300),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: AppColors.gray300),
-                          ),
-                        ),
-                        items: AppConstants.provinces.map((province) {
-                          return DropdownMenuItem(
-                            value: province,
-                            child: Text(province),
-                          );
-                        }).toList(),
-                        onChanged: _onProvinceChanged,
-                        validator: (value) => Validators.validateDropdown(value, 'Provinsi'),
-                      )
-                          .animate()
-                          .fadeIn(duration: 300.ms, delay: 250.ms),
-
-                      const SizedBox(height: 16),
-
-                      // City dropdown
-                      Text(
-                        'Kota / Kabupaten',
-                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                              fontWeight: FontWeight.w600,
-                            ),
-                      ),
-                      const SizedBox(height: 8),
-                      DropdownButtonFormField<String>(
-                        value: _selectedCity,
-                        decoration: InputDecoration(
-                          hintText: _selectedProvince == null
-                              ? 'Pilih provinsi dulu'
-                              : 'Pilih Kota',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: AppColors.gray300),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: AppColors.gray300),
-                          ),
-                        ),
-                        items: _availableCities.map((city) {
-                          return DropdownMenuItem(
-                            value: city,
-                            child: Text(city),
-                          );
-                        }).toList(),
-                        onChanged: _selectedProvince == null
-                            ? null
-                            : (value) => setState(() => _selectedCity = value),
-                        validator: (value) => Validators.validateDropdown(value, 'Kota'),
-                      )
-                          .animate()
-                          .fadeIn(duration: 300.ms, delay: 300.ms),
-
-                      const SizedBox(height: 32),
-                    ],
-                  ),
-                ),
-              ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _nik,
+              keyboardType: TextInputType.number,
+              maxLength: 16,
+              decoration: const InputDecoration(labelText: 'NIK'),
+              validator: (v) => v?.trim().length == 16 ? null : 'NIK harus 16 digit',
             ),
-
-            // Bottom button
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: AppColors.white,
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.black.withOpacity(0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, -5),
-                  ),
-                ],
-              ),
-              child: LoadingButton(
-                isLoading: _isLoading,
-                onPressed: _submit,
-                text: 'Lanjut',
-                icon: Icons.arrow_forward_rounded,
-              ),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Tanggal lahir'),
+              subtitle: Text(_dateLabel()),
+              trailing: const Icon(Icons.calendar_month_outlined),
+              onTap: _pickDate,
             ),
+            TextFormField(
+              controller: _address,
+              maxLines: 3,
+              decoration: const InputDecoration(labelText: 'Alamat'),
+              validator: (v) => v == null || v.trim().isEmpty ? 'Alamat wajib diisi' : null,
+            ),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<String>(
+              value: _province,
+              decoration: const InputDecoration(labelText: 'Provinsi'),
+              items: AppConstants.provinces
+                  .map((v) => DropdownMenuItem(value: v, child: Text(v)))
+                  .toList(),
+              onChanged: (v) => setState(() {
+                _province = v;
+                _city = null;
+              }),
+            ),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<String>(
+              value: cities.contains(_city) ? _city : null,
+              decoration: const InputDecoration(labelText: 'Kota/Kabupaten'),
+              items: cities
+                  .map((v) => DropdownMenuItem(value: v, child: Text(v)))
+                  .toList(),
+              onChanged: _province == null ? null : (v) => setState(() => _city = v),
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _postalCode,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(labelText: 'Kode pos (opsional)'),
+            ),
+            const SizedBox(height: 20),
+            Text('Kontak darurat', style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _emergencyName,
+              decoration: const InputDecoration(labelText: 'Nama kontak darurat'),
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _emergencyPhone,
+              keyboardType: TextInputType.phone,
+              decoration: const InputDecoration(labelText: 'Nomor kontak darurat'),
+            ),
+            const SizedBox(height: 24),
+            FilledButton(onPressed: _submit, child: const Text('Lanjut')),
           ],
         ),
       ),
