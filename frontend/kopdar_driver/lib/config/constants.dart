@@ -73,10 +73,18 @@ class AppConstants {
 
   static const Map<String, List<String>> citiesByProvince = {
     'DKI Jakarta': ['Jakarta Selatan', 'Jakarta Timur', 'Jakarta Barat', 'Jakarta Utara', 'Jakarta Pusat'],
-    'Jawa Barat': ['Bandung', 'Bekasi', 'Depok', 'Bogor', 'Tangerang'],
+    'Jawa Barat': ['Bandung', 'Bekasi', 'Depok', 'Bogor', 'Cimahi'],
+    'Jawa Tengah': ['Semarang', 'Surakarta', 'Magelang', 'Tegal', 'Purwokerto'],
+    'Jawa Timur': ['Surabaya', 'Malang', 'Sidoarjo', 'Kediri', 'Madiun'],
     'Banten': ['Tangerang', 'Tangerang Selatan', 'Serang', 'Cilegon'],
-    'Jawa Tengah': ['Semarang', 'Solo', 'Yogyakarta'],
-    'Jawa Timur': ['Surabaya', 'Malang', 'Sidoarjo'],
+    'DI Yogyakarta': ['Yogyakarta', 'Sleman', 'Bantul', 'Kulon Progo', 'Gunungkidul'],
+    'Bali': ['Denpasar', 'Badung', 'Gianyar', 'Tabanan', 'Buleleng'],
+    'Sumatera Utara': ['Medan', 'Binjai', 'Deli Serdang', 'Pematangsiantar'],
+    'Sumatera Barat': ['Padang', 'Bukittinggi', 'Payakumbuh', 'Pariaman'],
+    'Sumatera Selatan': ['Palembang', 'Prabumulih', 'Lubuklinggau', 'Banyuasin'],
+    'Kalimantan Timur': ['Samarinda', 'Balikpapan', 'Bontang', 'Kutai Kartanegara'],
+    'Sulawesi Selatan': ['Makassar', 'Gowa', 'Maros', 'Parepare'],
+    'Lainnya': ['Lainnya'],
   };
 
   static const int vehicleYearMin = 2010;
