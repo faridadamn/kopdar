@@ -85,62 +85,43 @@ func (h *DriverHandler) Register(c *gin.Context) {
 	}
 	uploaded = append(uploaded, stnkURL)
 
-	user, err := h.userRepo.FindByID(userID)
-	if err != nil {
-		cleanup()
-		utils.InternalError(c, "User not found")
-		return
-	}
-	user.FullName = &req.FullName
-	if err := h.userRepo.Update(user); err != nil {
-		cleanup()
-		utils.InternalError(c, "Failed to update user profile")
-		return
-	}
-
 	driver := &models.Driver{
-		UserID:                 userID,
-		NIK:                    &req.NIK,
-		DateOfBirth:            &dob,
-		Address:                &req.Address,
-		City:                   &req.City,
-		Province:               &req.Province,
-		PostalCode:             optionalString(req.PostalCode),
-		KTPPhotoURL:            &ktpURL,
-		SelfiePhotoURL:         &selfieURL,
-		STNKPhotoURL:           &stnkURL,
-		VehicleType:            &req.VehicleType,
-		VehicleBrand:           &req.VehicleBrand,
-		VehicleModel:           &req.VehicleModel,
-		VehicleColor:           &req.VehicleColor,
-		VehiclePlate:           &req.VehiclePlate,
-		VehicleYear:            &req.VehicleYear,
-		BankName:               &req.BankName,
-		BankAccountNumber:      &req.BankAccountNumber,
-		BankAccountName:        &req.BankAccountName,
-		EmergencyContactName:   &req.EmergencyContactName,
-		EmergencyContactPhone:  &req.EmergencyContactPhone,
-		VerificationStatus:     models.VerificationPending,
+		UserID:                  userID,
+		NIK:                     &req.NIK,
+		DateOfBirth:             &dob,
+		Address:                 &req.Address,
+		City:                    &req.City,
+		Province:                &req.Province,
+		PostalCode:              optionalString(req.PostalCode),
+		KTPPhotoURL:             &ktpURL,
+		SelfiePhotoURL:          &selfieURL,
+		STNKPhotoURL:            &stnkURL,
+		VehicleType:             &req.VehicleType,
+		VehicleBrand:            &req.VehicleBrand,
+		VehicleModel:            &req.VehicleModel,
+		VehicleColor:            &req.VehicleColor,
+		VehiclePlate:            &req.VehiclePlate,
+		VehicleYear:             &req.VehicleYear,
+		BankName:                &req.BankName,
+		BankAccountNumber:       &req.BankAccountNumber,
+		BankAccountName:         &req.BankAccountName,
+		EmergencyContactName:    &req.EmergencyContactName,
+		EmergencyContactPhone:   &req.EmergencyContactPhone,
+		VerificationStatus:      models.VerificationPending,
 	}
 	code := strings.ToUpper(uuid.New().String()[:8])
 	driver.ReferralCode = &code
 
-	if err := h.driverRepo.Create(driver); err != nil {
+	if err := h.driverRepo.RegisterDriver(req.FullName, driver, platforms); err != nil {
 		cleanup()
-		utils.InternalError(c, "Failed to create driver profile: "+err.Error())
+		utils.InternalError(c, "Failed to create driver registration: "+err.Error())
 		return
-	}
-	for _, platform := range platforms {
-		platform = strings.TrimSpace(platform)
-		if platform != "" {
-			_ = h.driverRepo.AddPlatform(driver.ID, platform)
-		}
 	}
 
 	utils.Created(c, "Driver registration submitted", gin.H{
-		"driver_id": driver.ID,
+		"driver_id":            driver.ID,
 		"verification_status": driver.VerificationStatus,
-		"referral_code": driver.ReferralCode,
+		"referral_code":        driver.ReferralCode,
 	})
 }
 
@@ -208,8 +189,8 @@ func (h *DriverHandler) GetStatus(c *gin.Context) {
 	}
 	utils.OK(c, "Status retrieved", gin.H{
 		"verification_status": driver.VerificationStatus,
-		"rejection_reason": driver.RejectionReason,
-		"verified_at": driver.VerifiedAt,
+		"rejection_reason":    driver.RejectionReason,
+		"verified_at":         driver.VerifiedAt,
 	})
 }
 
