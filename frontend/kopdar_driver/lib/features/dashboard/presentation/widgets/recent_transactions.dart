@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import '../../../config/theme.dart';
-import '../../data/models/transaction_item.dart';
-import 'transaction_item.dart';
+
+import 'package:kopdar_driver/config/theme.dart';
+import 'package:kopdar_driver/features/dashboard/data/models/transaction_item.dart';
+import 'package:kopdar_driver/features/dashboard/presentation/widgets/transaction_item.dart';
 
 /// List of recent transactions with a "Lihat Semua" link.
 class RecentTransactions extends StatelessWidget {
@@ -19,7 +20,6 @@ class RecentTransactions extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Header
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -40,13 +40,11 @@ class RecentTransactions extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 12),
-
-        // List
         if (transactions.isEmpty)
-          _EmptyState()
+          const _EmptyState()
         else
           ...transactions.map(
-            (tx) => TransactionItemTile(item: tx),
+            (transaction) => TransactionItemTile(item: transaction),
           ),
       ],
     );
@@ -54,6 +52,8 @@ class RecentTransactions extends StatelessWidget {
 }
 
 class _EmptyState extends StatelessWidget {
+  const _EmptyState();
+
   @override
   Widget build(BuildContext context) {
     return Container(
